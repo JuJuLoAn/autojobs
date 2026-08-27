@@ -1,15 +1,15 @@
 import {NextResponse} from 'next/server';
 
 const profile=[
- 'Formación: Grado Superior en Desarrollo de Aplicaciones Web (DAW).',
- 'Formación: Grado Medio en Sistemas Microinformáticos y Redes (SMR).',
+ 'Grado Superior en Desarrollo de Aplicaciones Web (DAW).',
+ 'Grado Medio en Sistemas Microinformáticos y Redes (SMR).',
  'Formación adicional en ciberseguridad e inteligencia artificial aplicada al puesto de trabajo.',
  'Experiencia en soporte IT remoto a oficinas y tiendas, resolución de incidencias técnicas, hardware, software, equipos y redes.',
- 'Experiencia en gestión y mantenimiento de bases de datos y plataforma web y realización de copias de seguridad.',
+ 'Experiencia en gestión y mantenimiento de bases de datos y plataformas web, copias de seguridad y soporte técnico.',
  'Experiencia como desarrollador web: creación y mantenimiento de páginas web corporativas y SEO.',
- 'Experiencia como técnico de infraestructuras: instalación, mantenimiento y soporte de sistemas, equipos y redes.',
+ 'Experiencia en infraestructuras: instalación, mantenimiento y soporte de sistemas, equipos y redes.',
  'Experiencia PDI tecnológica en vehículos: instalación y conexión de dispositivos, sistemas multimedia, diagnóstico de incidencias y comprobaciones electrónicas.',
- 'Inglés nivel intermedio.',
+ 'Inglés intermedio.',
  'Carnet de conducir y vehículo propio.'
 ];
 const norm=(s:string)=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
@@ -19,48 +19,62 @@ function optionsFrom(question:string){
  const lines=question.split(/\n|\r|\s{2,}/).map(x=>x.trim()).filter(Boolean);
  const tagged=lines.filter(x=>/^(?:[a-dA-D][).:-]|\d+[).:-]|[-•])\s*/.test(x)).map(x=>x.replace(/^(?:[a-dA-D][).:-]|\d+[).:-]|[-•])\s*/,''));
  if(tagged.length>=2)return tagged;
- const inline=[...question.matchAll(/(?:^|\s)([A-Da-d])\)\s*([^A-Da-d\n]{2,80})(?=\s+[A-Da-d]\)|$)/g)].map(m=>m[2].trim());
+ const inline=[...question.matchAll(/(?:^|\s)([A-Da-d])\)\s*([^A-Da-d\n]{2,100})(?=\s+[A-Da-d]\)|$)/g)].map(m=>m[2].trim());
  return inline.length>=2?inline:[];
 }
 function chooseOption(question:string,options:string[]){
  const q=norm(question);
  const scored=options.map((o,i)=>{const n=norm(o);let s=0;
-  if(/si|sí/.test(n)&&/(carnet|vehiculo|coche|disponibilidad)/.test(q))s+=10;
-  if(/intermedio|b1|b2/.test(n)&&/(ingles|english)/.test(q))s+=10;
-  if(/grado superior|fp superior|daw/.test(n)&&/(estudios|formacion|titulacion|nivel)/.test(q))s+=10;
-  if(/grado medio|smr/.test(n)&&/(estudios|formacion|titulacion|nivel)/.test(q))s+=7;
-  if(/20.?000|24.?000|20k|24k/.test(n)&&/(salario|pretension|expectativa)/.test(q))s+=10;
-  for(const kw of ['soporte','it','informatica','sistemas','redes','web','infraestructura','hardware','software','ciberseguridad','base de datos','sql'])if(n.includes(kw)&&profileText.includes(kw))s+=3;
-  if(/no tengo experiencia|ninguna|sin experiencia/.test(n)&&/(soporte|sistemas|redes|web|informatica|it)/.test(q))s-=6;
+  if(/^(si|sí)$|si,|sí,/.test(n)&&/(carnet|vehiculo|coche|disponibilidad|incorporacion|desplaz)/.test(q))s+=15;
+  if(/intermedio|b1|b2/.test(n)&&/(ingles|english)/.test(q))s+=15;
+  if(/grado superior|fp superior|daw/.test(n)&&/(estudios|formacion|titulacion|nivel academico)/.test(q))s+=15;
+  if(/grado medio|smr/.test(n)&&/(estudios|formacion|titulacion)/.test(q))s+=8;
+  if(/20.?000|21.?000|22.?000|23.?000|24.?000|20k|24k/.test(n)&&/(salario|pretension|expectativa)/.test(q))s+=12;
+  for(const kw of ['soporte','it','informatica','sistemas','redes','web','infraestructura','hardware','software','ciberseguridad','base de datos','sql'])if(n.includes(kw)&&profileText.includes(kw))s+=5;
+  if(/ninguna|sin experiencia|0 años|cero/.test(n)&&/(soporte|sistemas|redes|web|informatica|it|infraestructura)/.test(q))s-=15;
   return {o,i,s};
  }).sort((a,b)=>b.s-a.s||a.i-b.i);
  return scored[0]?.o||options[0];
 }
-function variant(base:string,n:number){
- if(n%3===1)return base.replace(/^Tengo /,'Cuento con ').replace(/^He trabajado /,'He tenido experiencia ');
- if(n%3===2)return base.replace('Tengo experiencia','Mi experiencia incluye').replace('Me interesa','Este puesto me interesa');
- return base;
-}
-function grounded(question:string,title:string,regen=false,previous=''){
- const q=norm(question),role=title?.trim()?` para el puesto de ${title.trim()}`:'';
- const opts=optionsFrom(question);if(opts.length>=2)return chooseOption(question,opts);
- let base='';
- if(/salario|pretension|expectativa/.test(q))base=`Mi expectativa salarial está en torno a 20.000–24.000 € brutos anuales, aunque puedo valorarla según las funciones, horario, modalidad y posibilidades de crecimiento${role}.`;
- else if(/ingles|english|idioma/.test(q))base='Tengo un nivel de inglés intermedio. Puedo trabajar con documentación técnica y desenvolverme en comunicaciones profesionales habituales, y sigo mejorándolo.';
- else if(/carnet|coche|vehiculo|desplaz/.test(q))base='Sí. Tengo carnet de conducir y vehículo propio, por lo que puedo desplazarme cuando el puesto lo requiera.';
- else if(/universit|grado universit|ingenier|licenc/.test(q))base='No tengo grado universitario. Mi formación principal es un Grado Superior en Desarrollo de Aplicaciones Web y un Grado Medio en Sistemas Microinformáticos y Redes, además de formación adicional en ciberseguridad.';
- else if(/disponibilidad|incorpor/.test(q))base=`Tengo disponibilidad para incorporarme según las necesidades de la empresa${role}.`;
- else if(/base.? de datos|sql|database/.test(q))base='He trabajado en la gestión y mantenimiento de bases de datos y plataformas web, además de realizar copias de seguridad y resolver incidencias relacionadas con el entorno técnico.';
- else if(/redes|network|router|switch|tcp|ip/.test(q))base='Tengo formación en Sistemas Microinformáticos y Redes y experiencia práctica en soporte de equipos, redes e infraestructuras, diagnóstico de incidencias y mantenimiento técnico.';
- else if(/hardware|software|incidencia|help.?desk|service desk|soporte/.test(q))base='Tengo experiencia en soporte IT remoto a oficinas y tiendas, resolución de incidencias de hardware y software, mantenimiento de equipos, redes, copias de seguridad y apoyo técnico a usuarios.';
- else if(/web|javascript|typescript|frontend|desarroll|program/.test(q))base='Tengo un Grado Superior en Desarrollo de Aplicaciones Web y experiencia creando y manteniendo páginas web corporativas, gestionando plataformas web y realizando tareas de SEO y mantenimiento.';
- else if(/infraestruct|sistemas|servidor|data center|datacenter|cpd/.test(q))base='He trabajado como técnico de infraestructuras realizando instalación, mantenimiento y soporte de sistemas, equipos y redes. También tengo experiencia en soporte IT y diagnóstico de incidencias.';
- else if(/ciber|seguridad/.test(q))base='Tengo formación específica en ciberseguridad y prevención y gestión de ciberataques, complementada con mi base técnica en sistemas, redes y soporte IT.';
- else if(/experiencia/.test(q))base=`Mi experiencia encaja principalmente en soporte IT, infraestructuras, redes y desarrollo web. He resuelto incidencias técnicas, mantenido equipos y plataformas, trabajado con bases de datos y copias de seguridad y dado soporte remoto a usuarios${role}.`;
- else if(/por que|por qué|motiv|interes|empresa/.test(q))base=`Me interesa${role} porque encaja con mi formación en DAW y SMR y con mi experiencia en soporte IT, infraestructuras y resolución de incidencias. Busco seguir creciendo técnicamente y aportar desde el primer día en tareas que ya conozco.`;
- else base=`Para responder con precisión a esa pregunta no quiero inventar experiencia que no tengo. Lo que sí puedo acreditar es: ${profile.slice(0,6).join(' ')}`;
- if(!regen)return base;
- const seed=(previous.length+question.length+Date.now())%3;const v=variant(base,seed);return v===previous?variant(base,(seed+1)%3):v;
-}
 
+const variants={
+ support:[
+  'Cuento con experiencia práctica en soporte IT a usuarios y oficinas, resolución de incidencias de hardware y software, mantenimiento de equipos, redes, copias de seguridad y apoyo técnico. Estoy acostumbrado a diagnosticar problemas, priorizar incidencias y buscar una solución eficaz.',
+  'Mi experiencia en soporte IT incluye atención remota a usuarios, resolución de incidencias de equipos, software y conectividad, mantenimiento técnico y seguimiento de problemas hasta su solución. Es un entorno en el que puedo aportar desde el primer día.',
+  'He trabajado resolviendo incidencias técnicas de hardware, software, equipos y redes, dando soporte remoto y realizando tareas de mantenimiento y copias de seguridad. Tengo una base práctica y orientada a resolver problemas.'
+ ],
+ systems:[
+  'Mi base en SMR y mi experiencia en infraestructuras me han permitido trabajar con equipos, redes, sistemas y diagnóstico de incidencias. Estoy acostumbrado al mantenimiento técnico y a desenvolverme en entornos donde la disponibilidad y la resolución rápida son importantes.',
+  'Tengo formación específica en sistemas y redes y experiencia práctica en instalación, mantenimiento, soporte de equipos e infraestructuras y resolución de incidencias. Me adapto con rapidez a nuevas herramientas y procedimientos técnicos.',
+  'Cuento con una base sólida en sistemas, redes e infraestructuras gracias a SMR y a mi experiencia técnica. He trabajado con mantenimiento de equipos, conectividad, soporte y diagnóstico de incidencias.'
+ ],
+ web:[
+  'Tengo un Grado Superior en Desarrollo de Aplicaciones Web y experiencia creando y manteniendo páginas web corporativas, trabajando con plataformas web, bases de datos y SEO. Combino conocimientos de desarrollo con experiencia real de mantenimiento y soporte.',
+  'Mi formación principal es DAW y he aplicado esos conocimientos en proyectos web reales: creación, mantenimiento y mejora de páginas corporativas, gestión de plataformas web, bases de datos y SEO.',
+  'Cuento con formación superior en desarrollo web y experiencia práctica manteniendo webs corporativas y plataformas, además de conocimientos de bases de datos y tareas de optimización y soporte.'
+ ],
+ motivation:[
+  'Me interesa este puesto porque encaja con mi perfil técnico y con la experiencia que ya he desarrollado en soporte IT, sistemas, redes y entornos web. Busco una posición en la que pueda aportar desde el inicio y seguir creciendo en responsabilidades y conocimientos.',
+  'Veo este puesto como una buena oportunidad para aprovechar mi experiencia técnica y seguir creciendo profesionalmente. Me atrae especialmente poder resolver problemas reales, trabajar con tecnología y asumir cada vez más responsabilidad.',
+  'El puesto encaja con mi trayectoria en soporte, sistemas y desarrollo web. Me motiva incorporarme a un equipo donde pueda aportar capacidad de resolución, aprendizaje rápido y una base técnica amplia.'
+ ]
+};
+function pick(arr:string[],previous:string,regen:boolean){if(!regen)return arr[0];const idx=Math.max(1,(previous.length+Date.now())%arr.length);return arr[idx]===previous?arr[(idx+1)%arr.length]:arr[idx];}
+function grounded(question:string,title:string,regen=false,previous=''){
+ const q=norm(question),role=title?.trim()?` para ${title.trim()}`:'';const opts=optionsFrom(question);if(opts.length>=2)return chooseOption(question,opts);
+ if(/salario|pretension|expectativa/.test(q))return pick([`Mi expectativa salarial está en torno a 20.000–24.000 € brutos anuales, aunque estoy abierto a valorar el conjunto de responsabilidades, horario, modalidad y posibilidades de crecimiento${role}.`,`Por las funciones y mi perfil, considero razonable una banda aproximada de 20.000–24.000 € brutos anuales, con flexibilidad para valorar la propuesta global y la evolución del puesto.`],previous,regen);
+ if(/ingles|english|idioma/.test(q))return pick(['Tengo un nivel de inglés intermedio y puedo trabajar con documentación técnica, interfaces y comunicaciones profesionales habituales. Además, lo sigo reforzando de forma continua.','Mi nivel de inglés es intermedio. Me desenvuelvo con documentación técnica y situaciones habituales de trabajo, y continúo mejorándolo para ganar fluidez.'],previous,regen);
+ if(/carnet|coche|vehiculo|desplaz/.test(q))return 'Sí, tengo carnet de conducir y vehículo propio, por lo que tengo disponibilidad para desplazarme cuando el puesto lo requiera.';
+ if(/universit|grado universit|ingenier|licenc/.test(q))return pick(['Mi formación técnica incluye un Grado Superior en Desarrollo de Aplicaciones Web y un Grado Medio en Sistemas Microinformáticos y Redes, complementados con formación en ciberseguridad. Es una base muy orientada a la práctica y a entornos IT reales.','Cuento con formación profesional especializada en IT: DAW y SMR, además de formación en ciberseguridad. Mi trayectoria combina esa base académica con experiencia práctica en soporte, sistemas, redes y desarrollo web.'],previous,regen);
+ if(/disponibilidad|incorpor/.test(q))return `Tengo disponibilidad para incorporarme según las necesidades de la empresa${role}.`;
+ if(/anos|años|tiempo.*experiencia|cuanto.*experiencia|cuánta.*experiencia/.test(q))return pick([`He acumulado experiencia práctica en distintas funciones IT, especialmente soporte técnico, infraestructuras, redes y desarrollo web. Esa combinación me permite adaptarme bien a un puesto como este${role}.`,`Mi trayectoria combina experiencia en soporte IT, infraestructuras y desarrollo web, con trabajo real de resolución de incidencias, mantenimiento y soporte técnico. Puedo aportar una base bastante transversal para este puesto.`],previous,regen);
+ if(/base.? de datos|sql|database/.test(q))return pick(['He trabajado en gestión y mantenimiento de bases de datos y plataformas web, además de copias de seguridad y resolución de incidencias relacionadas con el entorno técnico.','Tengo experiencia práctica con bases de datos dentro de entornos web y de soporte, incluyendo mantenimiento, gestión de información y copias de seguridad.'],previous,regen);
+ if(/hardware|software|incidencia|help.?desk|service desk|soporte/.test(q))return pick(variants.support,previous,regen);
+ if(/redes|network|router|switch|tcp|ip|infraestruct|sistemas|servidor|data center|datacenter|cpd/.test(q))return pick(variants.systems,previous,regen);
+ if(/web|javascript|typescript|frontend|desarroll|program/.test(q))return pick(variants.web,previous,regen);
+ if(/ciber|seguridad/.test(q))return pick(['Tengo formación específica en ciberseguridad, complementada con mi base en sistemas, redes y soporte IT. Esto me permite entender la seguridad desde una perspectiva técnica y práctica.','He reforzado mi perfil de sistemas y redes con formación en ciberseguridad. Me interesa especialmente aplicar buenas prácticas de seguridad dentro del soporte y la infraestructura IT.'],previous,regen);
+ if(/experiencia/.test(q))return pick([`Mi experiencia combina soporte IT, infraestructuras, redes y desarrollo web. He resuelto incidencias técnicas, mantenido equipos y plataformas, trabajado con bases de datos y copias de seguridad y dado soporte a usuarios${role}.`,`Cuento con una trayectoria técnica bastante transversal: soporte a usuarios, resolución de incidencias, equipos y redes, infraestructuras, mantenimiento web y bases de datos. Esa variedad me permite adaptarme con rapidez a las necesidades del puesto.`],previous,regen);
+ if(/por que|por qué|motiv|interes|empresa|encaja/.test(q))return pick(variants.motivation,previous,regen);
+ return pick([`Mi perfil combina formación en DAW y SMR con experiencia práctica en soporte IT, sistemas, redes, infraestructuras y desarrollo web. Destaco especialmente por mi capacidad para resolver incidencias, aprender herramientas nuevas con rapidez y adaptarme a distintos entornos técnicos${role}.`,`Cuento con una base técnica amplia en desarrollo web, sistemas y redes, reforzada con experiencia real en soporte IT, mantenimiento, resolución de incidencias y plataformas web. Creo que puedo adaptarme rápido a las funciones del puesto y aportar desde el inicio.`],previous,regen);
+}
 export async function POST(req:Request){try{const {question,title,regenerate,previousAnswer}=await req.json();if(!question?.trim())return NextResponse.json({error:'Escribe una pregunta'},{status:400});return NextResponse.json({answer:grounded(question,title||'',!!regenerate,previousAnswer||'')});}catch{return NextResponse.json({error:'No pude preparar la respuesta'},{status:500});}}
