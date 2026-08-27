@@ -1,0 +1,18 @@
+{
+  "name": "AutoJobs",
+  "short_name": "AutoJobs",
+  "description": "Asistente móvil para encontrar y revisar ofertas de InfoJobs",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f7fb",
+  "theme_color": "#1473e6",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
