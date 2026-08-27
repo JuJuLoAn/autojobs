@@ -1,0 +1,4 @@
+import {NextRequest,NextResponse} from 'next/server';
+import {cookies} from 'next/headers';
+import {encrypt,exchangeCode} from '@/lib/google';
+export async function GET(req:NextRequest){const code=req.nextUrl.searchParams.get('code');const state=req.nextUrl.searchParams.get('state');const jar=await cookies();const expected=jar.get('autojobs_oauth_state')?.value;if(!code||!state||!expected||state!==expected)return NextResponse.redirect(new URL('/?gmail=error',req.url));try{const tok=await exchangeCode(code);if(!tok.refresh_token)return NextResponse.redirect(new URL('/?gmail=norefresh',req.url));const res=NextResponse.redirect(new URL('/?gmail=connected',req.url));res.cookies.set('autojobs_google_refresh',encrypt(tok.refresh_token),{httpOnly:true,secure:true,sameSite:'lax',maxAge:60*60*24*180,path:'/'});res.cookies.delete('autojobs_oauth_state');return res;}catch{return NextResponse.redirect(new URL('/?gmail=error',req.url));}}
