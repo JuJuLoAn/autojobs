@@ -20,7 +20,7 @@ function isClearlyNonIT(title:string){return excludedTitle.test(norm(title));}
 function primaryCategory(title:string,fallback='General'){
  const t=norm(title);
  if(isClearlyNonIT(title))return'General';
- if(/soporte (?:it|ti|tecnico|informatico)|help.?desk|service desk|tecnico.? informatico|microinformat|desktop support|it support|cau\b/.test(t))return'Soporte IT';
+ if(/soporte (?:it|ti|tecnico|informatico)|tecnico.? (?:de )?soporte(?:\s+(?:it|ti|tecnico|informatico|l1|l2|n1|n2))?|help.?desk|service desk|tecnico.? informatico|microinformat|desktop support|it support|cau\b/.test(t))return'Soporte IT';
  if(/data scientist|data science|data engineer|machine learning|ml engineer|inteligencia artificial|artificial intelligence|\bai\b.*\b(?:engineer|data)\b|\bia engineer\b|generative ai|genai|prompt engineer|\bllm\b|\brpa\b/.test(t))return'IA / Automatización';
  if(/desarroll(?:ador|o)|programador|frontend|front end|backend|full.?stack|javascript|typescript|react|wordpress|php|node|web developer|software developer|java developer|python developer|\.net developer/.test(t))return'Desarrollo Web';
  if(/ciber|cyber|soc\b|siem|security analyst|pentest|seguridad informatica/.test(t))return'Ciberseguridad';
