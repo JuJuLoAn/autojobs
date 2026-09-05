@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { GET as getRawJobs } from '../jobs/route';
 
 type Job = {
   id: string;
@@ -46,12 +47,8 @@ export async function GET(request: NextRequest) {
   rawUrl.pathname = '/api/jobs';
   rawUrl.searchParams.set('__raw', '1');
 
-  const response = await fetch(rawUrl, {
-    cache: 'no-store',
-    headers: { 'Cache-Control': 'no-cache' },
-  });
-
-  const data = await response.json();
+  const rawResponse = await getRawJobs(new NextRequest(rawUrl));
+  const data = await rawResponse.json();
   const jobs: Job[] = Array.isArray(data.jobs) ? data.jobs : [];
   const filtered = jobs.filter(matchesProfile);
 
@@ -71,6 +68,6 @@ export async function GET(request: NextRequest) {
         profile: 'Solo puestos relacionados con experiencia o estudios del perfil objetivo',
       },
     },
-    { status: response.status },
+    { status: rawResponse.status },
   );
 }
