@@ -43,9 +43,9 @@ type QA = { question: string; answer: string; busy?: boolean };
 type View = 'feed' | 'applied' | 'pipeline';
 
 const norm = (s: string) =>
-  s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-const CACHE = 'autojobs-feed-v12';
+const CACHE = 'autojobs-feed-v13';
 const SAVED_KEY = 'autojobs-cards-v11';
 const TTL = 10 * 60 * 1000;
 const PIPELINE: TrackStatus[] = [
@@ -64,10 +64,35 @@ const APPLIED_STATUSES = new Set<TrackStatus>([
   'Oferta recibida',
 ]);
 const tips = [
-  'Prioriza las ofertas publicadas hoy: suelen recibir menos candidaturas al principio.',
-  'Si una oferta encaja aunque no cumplas el 100%, revisa los requisitos antes de descartarla.',
-  'Una candidatura adaptada al puesto suele ser mejor que enviar muchas genéricas.',
+  'Priorizamos soporte IT, desarrollo, sistemas, redes y ciberseguridad junior.',
+  'Solo mostramos puestos relacionados con tu experiencia o tus estudios.',
+  'Las ofertas senior, comerciales o demasiado especializadas se descartan.',
 ];
+
+function matchesProfileJob(job: Job) {
+  const t = norm(job.title);
+  if (!t) return false;
+
+  if (
+    /\b(?:senior|sr\.?|lead|manager|director|head|architect|arquitecto|responsable|jefe|coordinador)\b/.test(t)
+  ) return false;
+
+  if (
+    /\b(?:comercial|ventas|preventa|presales|teleoperador|call center|marketing|rrhh|recursos humanos|curso|formacion|docente|profesor)\b/.test(t)
+  ) return false;
+
+  if (
+    /data scientist|data engineer|machine learning|ml engineer|mlops|ai engineer|ia engineer|genai|\bllm\b|\brpa\b|business intelligence|power bi/.test(t)
+  ) return false;
+
+  const support = /soporte (?:it|ti|tecnico|informatico)|tecnico(?:\/a)? (?:de )?soporte|help.?desk|service desk|\bcau\b|microinformat|tecnico(?:\/a)? informatico|it support|desktop support|puesto de usuario/.test(t);
+  const development = /desarrollador(?:\/a)? web|programador(?:\/a)?|frontend|front end|backend|back end|full.?stack|web developer|software developer|wordpress|javascript|typescript|react|php|node(?:\.js)?|java developer|python developer|\.net developer/.test(t);
+  const systems = /tecnico(?:\/a)? (?:de )?sistemas|operador(?:\/a)? (?:de )?sistemas|sistemas informaticos|data center|datacenter|\bcpd\b|monitorizacion|active directory|microsoft 365|\bm365\b|office 365/.test(t);
+  const cyber = /ciberseguridad|cybersecurity|analista soc|\bsoc\b|security analyst|\bsiem\b|seguridad informatica|pentest/.test(t);
+  const networks = /tecnico(?:\/a)? (?:de )?redes|network technician|\bnoc\b|\bcisco\b|redes informaticas|comunicaciones it/.test(t);
+
+  return support || development || systems || cyber || networks;
+}
 
 function legacyDateToTimestamp(date?: string) {
   if (!date) return 0;
@@ -120,10 +145,11 @@ export default function Home() {
       Object.keys(localStorage)
         .filter((k) => k.startsWith('autojobs-feed-') && k !== CACHE)
         .forEach((k) => localStorage.removeItem(k));
-      const c = JSON.parse(localStorage.getItem(CACHE) || 'null');
-      if (c?.jobs && Date.now() - c.at < TTL) {
-        setJobs(c.jobs);
-        setProviderStatus(c.providerStatus || 'ok');
+
+      const cached = JSON.parse(localStorage.getItem(CACHE) || 'null');
+      if (cached?.jobs && Date.now() - cached.at < TTL) {
+        setJobs((cached.jobs as Job[]).filter(matchesProfileJob));
+        setProviderStatus(cached.providerStatus || 'ok');
         setBusy(false);
         load(false, false);
       } else {
@@ -149,16 +175,19 @@ export default function Home() {
         localStorage.removeItem(CACHE);
       } catch {}
     }
+
     try {
-      const r = await fetch(`/api/jobs?${force ? 'refresh=1&' : ''}_=${Date.now()}`, {
+      const response = await fetch(`/api/jobs?${force ? 'refresh=1&' : ''}_=${Date.now()}`, {
         cache: 'no-store',
         headers: { 'Cache-Control': 'no-cache' },
       });
-      const d = await r.json();
-      const sorted = (d.jobs || [])
+      const data = await response.json();
+      const sorted = (data.jobs || [])
         .filter(
-          (j: Job) =>
-            j.category !== 'General' && /^https:\/\/(?:www\.)?infojobs\.net\//i.test(j.link),
+          (job: Job) =>
+            job.category !== 'General' &&
+            /^https:\/\/(?:www\.)?infojobs\.net\//i.test(job.link) &&
+            matchesProfileJob(job),
         )
         .sort((a: Job, b: Job) => {
           const at = a.timestamp || 0;
@@ -170,10 +199,12 @@ export default function Home() {
           if (ar !== br) return ar - br;
           return b.score - a.score;
         });
+
       setJobs(sorted);
-      setProviderStatus(d.providerStatus || (r.ok ? 'ok' : 'provider_error'));
-      setProviderError(d.providerError || '');
-      if (r.ok) {
+      setProviderStatus(data.providerStatus || (response.ok ? 'ok' : 'provider_error'));
+      setProviderError(data.providerError || '');
+
+      if (response.ok) {
         localStorage.setItem(
           CACHE,
           JSON.stringify({ jobs: sorted, providerStatus: 'ok', at: Date.now() }),
@@ -187,26 +218,33 @@ export default function Home() {
     }
   }
 
-  function tracked(j: Job) {
-    return saved.find((x) => x.id === j.id || norm(x.title) === norm(j.title));
+  function tracked(job: Job) {
+    return saved.find((item) => item.id === job.id || norm(item.title) === norm(job.title));
   }
 
-  function setTrack(j: Job, status: TrackStatus) {
+  function setTrack(job: Job, status: TrackStatus) {
     setSaved((current) => {
-      const previous = current.find((x) => x.id === j.id || norm(x.title) === norm(j.title));
+      const previous = current.find(
+        (item) => item.id === job.id || norm(item.title) === norm(job.title),
+      );
       const enteringApplied = APPLIED_STATUSES.has(status);
       const appliedAt = enteringApplied ? previous?.appliedAt || Date.now() : previous?.appliedAt;
       const next: Saved = {
-        id: j.id,
-        title: j.title,
-        url: j.link,
+        id: job.id,
+        title: job.title,
+        url: job.link,
         status,
-        score: j.score,
+        score: job.score,
         date: new Date().toLocaleDateString('es-ES'),
-        salary: j.salary,
+        salary: job.salary,
         appliedAt,
       };
-      return [next, ...current.filter((x) => !(x.id === j.id || norm(x.title) === norm(j.title)))];
+      return [
+        next,
+        ...current.filter(
+          (item) => !(item.id === job.id || norm(item.title) === norm(job.title)),
+        ),
+      ];
     });
   }
 
@@ -224,44 +262,45 @@ export default function Home() {
     );
   }
 
-  async function generate(j: Job) {
-    const k = norm(j.title);
-    const cur = qa[k] || { question: '', answer: '' };
-    if (!cur.question.trim()) return;
-    setQa((v) => ({ ...v, [k]: { ...cur, busy: true } }));
+  async function generate(job: Job) {
+    const key = norm(job.title);
+    const current = qa[key] || { question: '', answer: '' };
+    if (!current.question.trim()) return;
+    setQa((value) => ({ ...value, [key]: { ...current, busy: true } }));
+
     try {
-      const r = await fetch('/api/answer', {
+      const response = await fetch('/api/answer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: j.title,
-          question: cur.question,
-          previousAnswer: cur.answer || undefined,
-          regenerate: !!cur.answer,
+          title: job.title,
+          question: current.question,
+          previousAnswer: current.answer || undefined,
+          regenerate: !!current.answer,
         }),
       });
-      const d = await r.json();
-      setQa((v) => ({
-        ...v,
-        [k]: {
-          question: cur.question,
-          answer: d.answer || d.error || 'No pude preparar la respuesta.',
+      const data = await response.json();
+      setQa((value) => ({
+        ...value,
+        [key]: {
+          question: current.question,
+          answer: data.answer || data.error || 'No pude preparar la respuesta.',
           busy: false,
         },
       }));
     } catch {
-      setQa((v) => ({
-        ...v,
-        [k]: { ...cur, answer: 'No pude preparar la respuesta.', busy: false },
+      setQa((value) => ({
+        ...value,
+        [key]: { ...current, answer: 'No pude preparar la respuesta.', busy: false },
       }));
     }
   }
 
   const feed = useMemo(
     () =>
-      jobs.filter((j) => {
-        if (j.category === 'General') return false;
-        const status = tracked(j)?.status as TrackStatus | undefined;
+      jobs.filter((job) => {
+        if (!matchesProfileJob(job)) return false;
+        const status = tracked(job)?.status as TrackStatus | undefined;
         if (!status) return true;
         return status !== 'Descartado' && status !== 'Rechazado' && !APPLIED_STATUSES.has(status);
       }),
@@ -277,13 +316,13 @@ export default function Home() {
   );
 
   const providerBroken = providerStatus && providerStatus !== 'ok';
-  const savedCount = saved.filter((x) => x.status !== 'Descartado').length;
+  const savedCount = saved.filter((item) => item.status !== 'Descartado').length;
 
   return (
     <main>
       <header className="appHeader">
         <div className="brand">
-          AUTOJOBS <small style={{ opacity: 0.45 }}>v12</small>
+          AUTOJOBS <small style={{ opacity: 0.45 }}>v13</small>
         </div>
         <div className="topline">
           <h1>
@@ -299,7 +338,7 @@ export default function Home() {
               ? 'Buscando oportunidades…'
               : busy
                 ? 'Actualizando InfoJobs…'
-                : `${feed.length} oportunidades · recientes y compatibles primero`
+                : `${feed.length} oportunidades · solo de tu perfil`
             : view === 'applied'
               ? `${applied.length} aplicadas · más recientes primero`
               : `${savedCount} ofertas guardadas`}
@@ -310,16 +349,10 @@ export default function Home() {
         <button className={view === 'feed' ? 'active' : ''} onClick={() => setView('feed')}>
           Para ti
         </button>
-        <button
-          className={view === 'applied' ? 'active' : ''}
-          onClick={() => setView('applied')}
-        >
+        <button className={view === 'applied' ? 'active' : ''} onClick={() => setView('applied')}>
           Aplicadas · {applied.length}
         </button>
-        <button
-          className={view === 'pipeline' ? 'active' : ''}
-          onClick={() => setView('pipeline')}
-        >
+        <button className={view === 'pipeline' ? 'active' : ''} onClick={() => setView('pipeline')}>
           Seguimiento · {savedCount}
         </button>
       </div>
@@ -336,71 +369,71 @@ export default function Home() {
         <section className="loadGame">
           <b>Buscando oportunidades que encajan contigo…</b>
           <p className="gameQ">{tips[tip]}</p>
-          <button className="ghost" onClick={() => setTip((x) => (x + 1) % tips.length)}>
+          <button className="ghost" onClick={() => setTip((value) => (value + 1) % tips.length)}>
             Otro consejo
           </button>
-          <div className="loadingBar">
-            <i />
-          </div>
+          <div className="loadingBar"><i /></div>
         </section>
       ) : view === 'feed' ? (
         <section className="list">
-          {feed.map((j) => {
-            const savedJob = tracked(j);
-            const k = norm(j.title);
-            const item = qa[k] || { question: '', answer: '' };
+          {feed.map((job) => {
+            const savedJob = tracked(job);
+            const key = norm(job.title);
+            const item = qa[key] || { question: '', answer: '' };
             return (
-              <article className="job" key={j.id}>
+              <article className="job" key={job.id}>
                 <div className="jobMain">
-                  <div className={`scorePill ${j.score >= 80 ? 'scoreGood' : j.score >= 65 ? 'scoreMid' : ''}`}>
-                    {j.score}%
+                  <div className={`scorePill ${job.score >= 80 ? 'scoreGood' : job.score >= 65 ? 'scoreMid' : ''}`}>
+                    {job.score}%
                   </div>
                   <div className="jobInfo">
                     <div className="categoryLabel">
-                      {j.category || 'IT'}{j.city ? ` · ${j.city}` : ''}
+                      {job.category || 'IT'}{job.city ? ` · ${job.city}` : ''}
                     </div>
-                    <h3>{j.title}</h3>
-                    {j.company && <div className="small">{j.company}</div>}
+                    <h3>{job.title}</h3>
+                    {job.company && <div className="small">{job.company}</div>}
                     <div className="jobMeta">
-                      <span className={j.salary ? 'salary salaryKnown' : 'salary'}>
-                        💰 {j.salary || 'No indicado'}
+                      <span className={job.salary ? 'salary salaryKnown' : 'salary'}>
+                        💰 {job.salary || 'No indicado'}
                       </span>
-                      {j.experience && <span className="small">Experiencia: {j.experience}</span>}
+                      {job.experience && <span className="small">Experiencia: {job.experience}</span>}
                       {savedJob && <span className="status abierta">{savedJob.status}</span>}
                     </div>
                   </div>
                 </div>
+
                 <div className="jobActions">
-                  <button className="ghost" onClick={() => setTrack(j, 'Descartado')}>
+                  <button className="ghost" onClick={() => setTrack(job, 'Descartado')}>
                     No me interesa
                   </button>
-                  <button className="ghost" onClick={() => setTrack(j, 'Me gusta')}>
+                  <button className="ghost" onClick={() => setTrack(job, 'Me gusta')}>
                     ♡ Me gusta
                   </button>
                   <button
                     onClick={() => {
-                      setTrack(j, 'Ya he aplicado');
-                      window.location.assign(j.link);
+                      setTrack(job, 'Ya he aplicado');
+                      window.location.assign(job.link);
                     }}
                   >
                     Aplicar
                   </button>
                 </div>
+
                 <details className="jobQa">
                   <summary>Preparar candidatura</summary>
                   <div className="jobQaBody">
                     <div className="questionBox">
                       <textarea
                         value={item.question}
-                        onChange={(e) =>
-                          setQa((v) => ({ ...v, [k]: { ...item, question: e.target.value } }))
+                        onChange={(event) =>
+                          setQa((value) => ({ ...value, [key]: { ...item, question: event.target.value } }))
                         }
                         placeholder="Pega una pregunta de esta oferta"
                       />
                       {item.question && (
                         <button
                           className="clearBtn"
-                          onClick={() => setQa((v) => ({ ...v, [k]: { question: '', answer: '' } }))}
+                          onClick={() => setQa((value) => ({ ...value, [key]: { question: '', answer: '' } }))}
                         >
                           Borrar
                         </button>
@@ -408,7 +441,7 @@ export default function Home() {
                     </div>
                     <button
                       className="secondary"
-                      onClick={() => generate(j)}
+                      onClick={() => generate(job)}
                       disabled={!item.question.trim() || item.busy}
                     >
                       {item.busy ? 'Preparando…' : 'Responder con mi CV'}
@@ -421,13 +454,13 @@ export default function Home() {
                             className="ghost"
                             onClick={async () => {
                               await navigator.clipboard.writeText(item.answer);
-                              setCopied(k);
+                              setCopied(key);
                               setTimeout(() => setCopied(''), 1000);
                             }}
                           >
-                            {copied === k ? '✓ Copiada' : 'Copiar'}
+                            {copied === key ? '✓ Copiada' : 'Copiar'}
                           </button>
-                          <button className="secondary" onClick={() => generate(j)}>
+                          <button className="secondary" onClick={() => generate(job)}>
                             ↻ Otra respuesta
                           </button>
                         </div>
@@ -438,10 +471,11 @@ export default function Home() {
               </article>
             );
           })}
+
           {!feed.length && !busy && (
             <div className="empty">
-              <b>No hay oportunidades IT cargadas</b>
-              <span>Pulsa ↻ para volver a consultar InfoJobs.</span>
+              <b>No hay ofertas que encajen con tu perfil ahora mismo</b>
+              <span>Solo mostramos puestos relacionados con lo que has estudiado o trabajado.</span>
             </div>
           )}
         </section>
@@ -457,11 +491,9 @@ export default function Home() {
                     <span className="small">{item.salary || 'Salario no indicado'}</span>
                     <select
                       value={item.status}
-                      onChange={(e) => changeSavedStatus(item, e.target.value as TrackStatus)}
+                      onChange={(event) => changeSavedStatus(item, event.target.value as TrackStatus)}
                     >
-                      {PIPELINE.map((status) => (
-                        <option key={status}>{status}</option>
-                      ))}
+                      {PIPELINE.map((status) => <option key={status}>{status}</option>)}
                     </select>
                   </div>
                   <a href={item.url}>Abrir</a>
@@ -498,11 +530,9 @@ export default function Home() {
                           <span className="small">{item.salary || 'Salario no indicado'}</span>
                           <select
                             value={item.status}
-                            onChange={(e) => changeSavedStatus(item, e.target.value as TrackStatus)}
+                            onChange={(event) => changeSavedStatus(item, event.target.value as TrackStatus)}
                           >
-                            {PIPELINE.map((nextStatus) => (
-                              <option key={nextStatus}>{nextStatus}</option>
-                            ))}
+                            {PIPELINE.map((nextStatus) => <option key={nextStatus}>{nextStatus}</option>)}
                           </select>
                         </div>
                         <a href={item.url}>Abrir</a>
