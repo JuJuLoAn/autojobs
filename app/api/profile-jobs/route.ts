@@ -29,7 +29,12 @@ function matchesProfile(job: Job) {
   const t = norm(job.title);
   if (!t) return false;
 
-  if (/\b(?:senior|sr\.?|lead|manager|director|head|architect|arquitecto|responsable|jefe|coordinador|supervisor)\b/.test(t)) return false;
+  // Only entry/junior roles that map directly to the user's studies or actual work.
+  // Higher-responsibility titles are excluded even when they contain a matching technology.
+  if (/\b(?:senior|sr\.?|lead|manager|director|head|architect|arquitecto|responsable|jefe|coordinador|supervisor|especialista)\b/.test(t)) return false;
+  if (/analista\s+programador/.test(t)) return false;
+  if (/administrador(?:\/a)?\s+(?:de\s+)?sistemas/.test(t) && !/\bjunior\b/.test(t)) return false;
+
   if (/\b(?:comercial|ventas|preventa|presales|teleoperador|call center|marketing|rrhh|recursos humanos|curso|formacion|docente|profesor|consultor)\b/.test(t)) return false;
   if (/scada|iiot|labview|plc|bms|ibms|spark|scala|etl|databricks|microstrategy|data engineer|data scientist|data science|machine learning|ml engineer|mlops|devops|ai engineer|ia engineer|ingeniero.*inteligencia artificial|genai|agentic|ag[eé]ntic|\bllm\b|\brpa\b|blue prism|power bi|business intelligence|prompt engineering|sagemaker|knowledge graph|\brag\b|cmdb|bpm|opentext|oracle webcenter/.test(t)) return false;
 
@@ -65,7 +70,7 @@ export async function GET(request: NextRequest) {
       counts,
       filters: {
         ...(data.filters || {}),
-        profile: 'Solo puestos relacionados con experiencia o estudios del perfil objetivo',
+        profile: 'Solo puestos de entrada o junior relacionados directamente con experiencia o estudios del perfil objetivo',
       },
     },
     { status: rawResponse.status },
