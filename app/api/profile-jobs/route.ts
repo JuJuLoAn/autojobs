@@ -63,13 +63,26 @@ export async function GET(request: NextRequest) {
     counts[category] = (counts[category] || 0) + 1;
   }
 
+  const metadata = {
+    total: filtered.length,
+    withVerifiedDate: filtered.filter((job) => Boolean(job.timestamp)).length,
+    withSalary: filtered.filter((job) => Boolean(job.salary)).length,
+    withCompany: filtered.filter((job) => Boolean(job.company?.trim())).length,
+    withExperience: filtered.filter((job) => Boolean(job.experience?.trim())).length,
+  };
+  const hasVerifiedDates = metadata.withVerifiedDate > 0;
+
   return NextResponse.json(
     {
       ...data,
       jobs: filtered,
       counts,
+      metadataQuality: metadata,
       filters: {
         ...(data.filters || {}),
+        sort: hasVerifiedDates
+          ? 'Fechas verificadas primero; después orden de InfoJobs'
+          : 'Orden de InfoJobs; fecha de publicación no verificable',
         profile: 'Solo puestos de entrada o junior relacionados directamente con experiencia o estudios del perfil objetivo',
       },
     },
