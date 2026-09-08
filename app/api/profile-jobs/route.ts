@@ -29,22 +29,39 @@ function matchesProfile(job: Job) {
   const t = norm(job.title);
   if (!t) return false;
 
-  // Only entry/junior roles that map directly to the user's studies or actual work.
-  // Higher-responsibility titles are excluded even when they contain a matching technology.
-  if (/\b(?:senior|sr\.?|lead|manager|director|head|architect|arquitecto|responsable|jefe|coordinador|supervisor|especialista)\b/.test(t)) return false;
+  // Strict whitelist: a title is accepted only when the actual role maps directly
+  // to support/microinformatics, DAW development, CPD/systems operations,
+  // entry-level networking or entry-level cybersecurity.
+  // Technology keywords by themselves are never enough to admit a job.
+  if (/\b(?:senior|sr\.?|lead|manager|director|head|architect|arquitecto|responsable|jefe|coordinador|supervisor|especialista|consultor|pmo)\b/.test(t)) return false;
   if (/analista\s+programador/.test(t)) return false;
-  if (/administrador(?:\/a)?\s+(?:de\s+)?sistemas/.test(t) && !/\bjunior\b/.test(t)) return false;
+  if (/\b(?:ingeniero|engineer)\b/.test(t) && !/\bjunior\b/.test(t)) return false;
+  if (/administrador(?:\/a)?\b/.test(t) && !/\bjunior\b/.test(t)) return false;
 
-  if (/\b(?:comercial|ventas|preventa|presales|teleoperador|call center|marketing|rrhh|recursos humanos|curso|formacion|docente|profesor|consultor)\b/.test(t)) return false;
-  if (/scada|iiot|labview|plc|bms|ibms|spark|scala|etl|databricks|microstrategy|data engineer|data scientist|data science|machine learning|ml engineer|mlops|devops|ai engineer|ia engineer|ingeniero.*inteligencia artificial|genai|agentic|ag[eé]ntic|\bllm\b|\brpa\b|blue prism|power bi|business intelligence|prompt engineering|sagemaker|knowledge graph|\brag\b|cmdb|bpm|opentext|oracle webcenter/.test(t)) return false;
+  if (/\b(?:comercial|ventas|preventa|presales|teleoperador|call center|marketing|rrhh|recursos humanos|curso|formacion|docente|profesor|vigilante|auxiliar(?:es)? de servicios|seguridad fisica)\b/.test(t)) return false;
+  if (/scada|iiot|labview|plc|bms|ibms|spark|scala|etl|databricks|microstrategy|data engineer|data scientist|data science|machine learning|ml engineer|mlops|devops|devsecops|ai engineer|ia engineer|ingeniero.*inteligencia artificial|genai|agentic|ag[eé]ntic|\bllm\b|\brpa\b|blue prism|power bi|business intelligence|prompt engineering|sagemaker|knowledge graph|\brag\b|cmdb|bpm|opentext|oracle webcenter|insider threat|\bdlp\b/.test(t)) return false;
 
-  const support = /soporte (?:it|ti|tecnico|informatico)|tecnico(?:\/a)? (?:de )?soporte|help.?desk|service desk|\bcau\b|microinformat|tecnico(?:\/a)? informatico|it support|desktop support|puesto de usuario|becario(?:\/a)? de soporte tecnico/.test(t);
-  const development = /desarrollador(?:\/a)? (?:web|frontend|front|backend|full.?stack|react|ecommerce)|programador(?:\/a)?(?: junior)?$|programador(?:\/a)? (?:web|java|php|javascript|typescript|react|angular|\.net|python|full.?stack)|frontend developer|web developer|wordpress|javascript|typescript|react|php|node(?:\.js)?|java developer|python developer|\.net developer|full.?stack developer/.test(t);
-  const systems = /tecnico(?:\/a)? (?:de )?sistemas|operador(?:\/a)? (?:de )?sistemas|sistemas informaticos|data center|datacenter|\bcpd\b|monitorizacion|active directory|microsoft 365|\bm365\b|office 365/.test(t);
-  const cyber = /ciberseguridad|cybersecurity|analista soc|operador(?:\/a)? de seguridad.*soc|\bsoc\b|security analyst|\bsiem\b|seguridad informatica|pentest/.test(t);
-  const networks = /tecnico(?:\/a)? (?:de )?redes|tecnico(?:\/a)? n[12] redes|network technician|\bnoc\b|\bcisco\b|redes informaticas|comunicaciones(?: it)?|routing|switching/.test(t);
+  const support =
+    /soporte (?:it|ti|tecnico|informatico)|tecnico(?:\/a)? (?:de )?soporte|help.?desk|service desk|\bcau\b|microinformat|tecnico(?:\/a)? informatico|it support|desktop support|puesto de usuario|becario(?:\/a)? de soporte tecnico/.test(t);
 
-  return support || development || systems || cyber || networks;
+  const development =
+    /desarrollador(?:\/a)? (?:web|frontend|front|backend|full.?stack|react|ecommerce)|programador(?:\/a)?(?: junior)?$|programador(?:\/a)? (?:web|java|php|javascript|typescript|react|angular|\.net|python|full.?stack)|frontend developer|web developer|wordpress developer|java developer|python developer|\.net developer|full.?stack developer/.test(t);
+
+  // Systems/CPD requires an explicit technical/operations role. A title that merely
+  // contains “data center” or “CPD” is not accepted.
+  const systems =
+    /(?:tecnico|tecnica)(?:\/a)? (?:de )?(?:sistemas|cpd|data center|datacenter)|operador(?:\/a)? (?:de )?(?:sistemas|cpd|data center|datacenter)|tecnico(?:\/a)? de red -? cpd|tecnico(?:\/a)? cpd|operador(?:\/a)? cpd/.test(t);
+
+  // Networking is limited to technician/NOC roles, not network engineers.
+  const networks =
+    /tecnico(?:\/a)? (?:de )?redes|tecnico(?:\/a)? n[12] (?:de )?redes|network technician|tecnico(?:\/a)? de red(?:\b| )|operador(?:\/a)? noc|tecnico(?:\/a)? noc/.test(t);
+
+  // Cybersecurity is intentionally entry-level only. Generic analyst/admin/SIEM
+  // titles are excluded unless N1/junior is explicit, or the role is SOC operator.
+  const cyber =
+    /analista (?:de )?ciberseguridad (?:n1|nivel 1|junior)\b|analista soc (?:n1|nivel 1|junior)\b|operador(?:\/a)? de seguridad.*\bsoc\b|operador(?:\/a)? soc\b|tecnico(?:\/a)? (?:de )?ciberseguridad (?:n1|nivel 1|junior)\b|tecnico(?:\/a)? de redes n[12].*ciberseguridad/.test(t);
+
+  return support || development || systems || networks || cyber;
 }
 
 export async function GET(request: NextRequest) {
@@ -83,7 +100,8 @@ export async function GET(request: NextRequest) {
         sort: hasVerifiedDates
           ? 'Fechas verificadas primero; después orden de InfoJobs'
           : 'Orden de InfoJobs; fecha de publicación no verificable',
-        profile: 'Solo puestos de entrada o junior relacionados directamente con experiencia o estudios del perfil objetivo',
+        profile:
+          'Whitelist estricta: soporte/microinformática, desarrollo DAW, operación técnica CPD/sistemas, redes técnicas y ciberseguridad de entrada',
       },
     },
     { status: rawResponse.status },
