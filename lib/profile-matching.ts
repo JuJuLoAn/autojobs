@@ -13,6 +13,10 @@ const norm=(s:string)=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u
 // a puestos junior/de entrada sin convertir materias estudiadas en experiencia profesional.
 const HARD_REJECT=/\b(?:senior|sr\.?|lead|manager|director|head|architect|arquitecto|responsable|jefe|coordinador|pmo|principal|especialista)\b|analista\s+programador|scada|\bplc\b|automatizacion industrial|labview|data scientist|data engineer|machine learning|mlops|ai engineer|ia engineer|genai|\bllm\b|\brpa\b|business intelligence|power bi|devops|devsecops|databricks|\bspark\b|\bscala\b|salesforce|sap abap|\bappian\b|\bcamunda\b|\bbpm\b|\bcmdb\b/i;
 const JUNIOR=/\b(?:junior|jr\.?|trainee|beca|practicas|primer empleo|n1|nivel 1|l1)\b/i;
+// Si el título declara explícitamente una experiencia por encima del máximo objetivo (3 años),
+// se descarta aunque el resto del rol encaje. Cubre rangos como "3-4 años", "4+ años" y
+// fórmulas habituales "mínimo/al menos/más de 4 años" sin inferir experiencia cuando no se publica.
+const TITLE_EXPERIENCE_REJECT=/(?:\b(?:4|5|6|7|8|9|10)\s*\+?\s*(?:anos|años)\b)|(?:\b\d{1,2}\s*(?:-|–|a)\s*(?:4|5|6|7|8|9|10)\s*(?:anos|años)\b)|(?:\b(?:minimo|al menos|mas de|experiencia(?: minima)?(?: de)?)\s*(?:4|5|6|7|8|9|10)\s*(?:anos|años)\b)/i;
 // Tecnologías/plataformas de desarrollo muy específicas que no constan en el CV ni en DAW.
 // No se descartan si la propia vacante declara nivel junior/entrada, donde sí puede ser razonable aprenderlas.
 const SPECIALIZED_DEV=/\bcells\b|sencha(?:\s+ext\s*js)?|oracle\s+pl\/sql|\bvb\s*\.net\b|\basp\s*\.net\b|(?:^|[\s(])\.net(?:\s+core)?\b/i;
@@ -28,6 +32,7 @@ export function matchProfessionalProfile(title:string, description=''):ProfileMa
   const t=norm(`${title} ${description}`);
   const reasons:string[]=[];
   if(!t || HARD_REJECT.test(t)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['Fuera del nivel o ámbito profesional objetivo']};
+  if(TITLE_EXPERIENCE_REJECT.test(titleText)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['La vacante exige explícitamente más de 3 años de experiencia']};
   if(LANGUAGE_REJECT.test(titleText)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['El título exige un idioma o nivel lingüístico no acreditado en el CV']};
   if(ELIGIBILITY_REJECT.test(titleText)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['La vacante exige una condición o acreditación personal que no consta en el perfil']};
   if(/\b(?:ingeniero|engineer)\b/.test(t) && !JUNIOR.test(t)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['Rol de ingeniería no junior fuera del nivel objetivo']};
