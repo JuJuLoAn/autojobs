@@ -11,13 +11,15 @@ const norm=(s:string)=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u
 // Perfil derivado del CV y de los módulos de ciberseguridad aportados por el usuario.
 // Regla: experiencia real puede justificar puestos equivalentes; formación permite ampliar
 // a puestos junior/de entrada sin convertir materias estudiadas en experiencia profesional.
-const HARD_REJECT=/\b(?:senior|sr\.?|lead|manager|director|head|architect|arquitecto|responsable|jefe|coordinador|pmo|principal)\b|scada|\bplc\b|automatizacion industrial|labview|data scientist|data engineer|machine learning|mlops|ai engineer|ia engineer|genai|\bllm\b|\brpa\b|business intelligence|power bi|devops|devsecops/i;
+const HARD_REJECT=/\b(?:senior|sr\.?|lead|manager|director|head|architect|arquitecto|responsable|jefe|coordinador|pmo|principal|especialista)\b|analista\s+programador|scada|\bplc\b|automatizacion industrial|labview|data scientist|data engineer|machine learning|mlops|ai engineer|ia engineer|genai|\bllm\b|\brpa\b|business intelligence|power bi|devops|devsecops|databricks|\bspark\b|\bscala\b|salesforce|sap abap|\bappian\b|\bbpm\b|\bcmdb\b/i;
 const JUNIOR=/\b(?:junior|jr\.?|trainee|beca|practicas|primer empleo|n1|nivel 1|l1)\b/i;
 
 export function matchProfessionalProfile(title:string, description=''):ProfileMatch {
   const t=norm(`${title} ${description}`);
   const reasons:string[]=[];
   if(!t || HARD_REJECT.test(t)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['Fuera del nivel o ámbito profesional objetivo']};
+  if(/\b(?:ingeniero|engineer)\b/.test(t) && !JUNIOR.test(t)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['Rol de ingeniería no junior fuera del nivel objetivo']};
+  if(/administrador(?:\/a)?\b/.test(t) && !JUNIOR.test(t)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['Administración especializada sin nivel junior explícito']};
 
   const support=/soporte (?:it|ti|tecnico|informatico)|tecnico(?:\/a)? (?:de )?soporte|help.?desk|service desk|\bcau\b|microinformat|tecnico(?:\/a)? informatico|it support|desktop support|puesto de usuario/.test(t);
   if(support){reasons.push('Experiencia profesional y SMR en soporte IT/microinformática');return {eligible:true,score:JUNIOR.test(t)?98:94,area:'Soporte IT',basis:'experiencia+estudios',reasons};}
@@ -36,7 +38,7 @@ export function matchProfessionalProfile(title:string, description=''):ProfileMa
   // IoT, análisis forense, evidencias, logs, tráfico, IDS, Wireshark/tcpdump/Snort y respuesta a incidentes.
   const cyberDomain=/ciberseguridad|cybersecurity|\bsoc\b|security analyst|analista de seguridad|seguridad informatica|siem|respuesta a incidentes|incident response|vulnerabil|pentest|hacking etico|forense digital|digital forensics|analisis forense|threat analyst|blue team/.test(t);
   const cyberRole=/analista|tecnico|operador|trainee|beca|practicas/.test(t);
-  const advancedCyber=/cloud security engineer|security engineer|ingeniero(?:\/a)? de seguridad|administrador(?:\/a)? (?:de )?siem|pentester(?!.*(?:junior|jr|trainee))|forensic expert|experto forense|consultor(?:\/a)?|especialista/.test(t);
+  const advancedCyber=/cloud security engineer|security engineer|ingeniero(?:\/a)? de seguridad|administrador(?:\/a)? (?:de )?siem|pentester(?!.*(?:junior|jr|trainee))|forensic expert|experto forense|consultor(?:\/a)?/.test(t);
   if(cyberDomain && cyberRole && !advancedCyber){
     const explicitEntry=JUNIOR.test(t)||/operador(?:\/a)? soc|analista soc/.test(t);
     reasons.push('Formación específica en ciberseguridad; encaje por estudios, no por experiencia profesional');
