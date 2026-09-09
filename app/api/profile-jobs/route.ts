@@ -75,9 +75,6 @@ export async function GET(request: NextRequest) {
         link: canonicalInfoJobsLink(job.link),
         score: match.score,
         category: match.area,
-        // El motor de perfil es la fuente canónica de categoría. No conservar categorías
-        // heredadas del scraping, porque una clasificación previa errónea puede contaminar
-        // filtros/contadores aunque `category` ya haya sido corregida.
         categories: [match.area],
         modality: modalityFromTitle(job.title),
         matchBasis: match.basis,
@@ -86,12 +83,36 @@ export async function GET(request: NextRequest) {
     })
     .filter((job): job is Job => Boolean(job));
 
+  // Defensa adicional contra duplicados: el scraper ya agrupa por ID de oferta, pero una
+  // misma vacante puede llegar por varias búsquedas con parámetros distintos. Tras convertir
+  // el enlace a su forma canónica, conservamos una sola tarjeta por URL y elegimos la versión
+  // con mejor información (score, fecha, salario, empresa o experiencia) cuando existe.
+  const byCanonicalLink = new Map<string, Job>();
+  for (const job of filteredUnranked) {
+    const key = job.link || job.id;
+    const current = byCanonicalLink.get(key);
+    if (!current) {
+      byCanonicalLink.set(key, job);
+      continue;
+    }
+    const quality = (item: Job) =>
+      item.score +
+      (item.timestamp ? 4 : 0) +
+      (item.salary ? 3 : 0) +
+      (item.company?.trim() ? 2 : 0) +
+      (item.experience?.trim() ? 2 : 0) +
+      (item.modality ? 1 : 0);
+    if (quality(job) > quality(current)) byCanonicalLink.set(key, job);
+  }
+  const deduplicated = [...byCanonicalLink.values()];
+  const duplicatesRemoved = filteredUnranked.length - deduplicated.length;
+
   // El `rank` original procede de búsquedas distintas por keyword y no representa un orden
   // global fiable. Cuando no existe fecha verificada, priorizamos el encaje con el perfil y
   // usamos el orden original de InfoJobs solo como desempate. Si hay fecha verificada, manda
   // la recencia. Después reasignamos un rank canónico para que cualquier cliente respete el
   // mismo orden sin tener que duplicar esta lógica.
-  const filtered = [...filteredUnranked]
+  const filtered = [...deduplicated]
     .sort((a, b) => {
       const at = a.timestamp || 0;
       const bt = b.timestamp || 0;
@@ -118,6 +139,7 @@ export async function GET(request: NextRequest) {
     withCompany: filtered.filter((job) => Boolean(job.company?.trim())).length,
     withExperience: filtered.filter((job) => Boolean(job.experience?.trim())).length,
     withModality: filtered.filter((job) => Boolean(job.modality)).length,
+    duplicatesRemoved,
   };
 
   const rejectedByReason: Record<string, number> = {};
@@ -130,7 +152,8 @@ export async function GET(request: NextRequest) {
   const profileDiagnostics = {
     input: jobs.length,
     accepted: filtered.length,
-    rejected: jobs.length - filtered.length,
+    rejected: jobs.length - filteredUnranked.length,
+    duplicatesRemoved,
     acceptanceRate: jobs.length ? Number((filtered.length / jobs.length).toFixed(3)) : 0,
     rejectedByReason,
   };
@@ -154,7 +177,7 @@ export async function GET(request: NextRequest) {
         modality:
           'Modalidad solo cuando InfoJobs la declara explícitamente en el título; teletrabajo parcial se clasifica como híbrido.',
         links:
-          'URLs canónicas de InfoJobs sin parámetros de búsqueda o tracking.',
+          'URLs canónicas de InfoJobs sin parámetros de búsqueda o tracking; duplicados exactos se eliminan después de canonicalizar.',
       },
     },
     { status: rawResponse.status },
