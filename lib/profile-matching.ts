@@ -41,7 +41,13 @@ export function matchProfessionalProfile(title:string, description=''):ProfileMa
   if(support){reasons.push('Experiencia profesional y SMR en soporte IT/microinformática');return {eligible:true,score:JUNIOR.test(t)?98:94,area:'Soporte IT',basis:'experiencia+estudios',reasons};}
 
   const dev=/desarrollador(?:\/a)? web|programador(?:\/a)? web|frontend|front end|backend|back end|full.?stack|web developer|wordpress|javascript|typescript|react|php|node(?:\.js)?|java developer|python developer|\.net developer|programador(?:\/a)? (?:java|php|javascript|typescript|react|angular|\.net|python|full.?stack)/.test(t);
-  if(dev){reasons.push('DAW y experiencia real en desarrollo y mantenimiento web');return {eligible:true,score:JUNIOR.test(t)?94:88,area:'Desarrollo Web',basis:'experiencia+estudios',reasons};}
+  if(dev){
+    const entry=JUNIOR.test(t);
+    reasons.push(entry
+      ? 'DAW y experiencia real en desarrollo web; la oferta declara nivel de entrada'
+      : 'DAW y experiencia real en desarrollo web; encaje válido pero con seniority no verificado');
+    return {eligible:true,score:entry?94:82,area:'Desarrollo Web',basis:'experiencia+estudios',reasons};
+  }
 
   const systems=/tecnico(?:\/a)? (?:de )?sistemas|operador(?:\/a)? (?:de )?sistemas|operador(?:\/a)? (?:de )?(?:cpd|data center|datacenter)|tecnico(?:\/a)? (?:de )?(?:cpd|data center|datacenter)|data center technician|monitorizacion/.test(t);
   if(systems){reasons.push('SMR y experiencia en infraestructuras, equipos, redes y operación/monitorización técnica');return {eligible:true,score:JUNIOR.test(t)?96:92,area:'Infraestructura / Sistemas',basis:'experiencia+estudios',reasons};}
