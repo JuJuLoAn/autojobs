@@ -5,11 +5,10 @@ const norm=(s:string)=>clean(s).toLowerCase().normalize('NFD').replace(/[\u0300-
 const key=(s:string)=>norm(s).replace(/[^a-z0-9]/g,'');
 const SEARCHES=[
  {category:'Soporte IT',keywords:['soporte it','tecnico soporte','helpdesk','service desk','tecnico informatico','microinformatica','it support']},
- {category:'Desarrollo Web',keywords:['desarrollador web','programador web','frontend','backend','full stack','wordpress','javascript']},
- {category:'Infraestructura / Sistemas',keywords:['tecnico sistemas','administrador sistemas','sistemas informaticos','sysadmin','infraestructura it','data center','cloud']},
- {category:'Ciberseguridad',keywords:['ciberseguridad','cybersecurity','soc','analista seguridad','seguridad informatica','siem','security analyst']},
- {category:'IA / Automatización',keywords:['data scientist','data science','data engineer','machine learning','inteligencia artificial','artificial intelligence','ai engineer','genai','llm','rpa']},
- {category:'Redes',keywords:['redes informaticas','tecnico redes','network engineer','cisco','noc','comunicaciones it','network technician']}
+ {category:'Desarrollo Web',keywords:['desarrollador web','programador web','frontend','backend','full stack','wordpress','javascript','react']},
+ {category:'Infraestructura / Sistemas',keywords:['tecnico sistemas','operador sistemas','tecnico cpd','operador cpd','data center technician']},
+ {category:'Ciberseguridad',keywords:['analista ciberseguridad n1','analista soc n1','tecnico ciberseguridad junior','operador soc']},
+ {category:'Redes',keywords:['tecnico redes','network technician','operador noc','tecnico noc','redes informaticas']}
 ];
 const AREAS=SEARCHES.map(x=>x.category),TTL=10*60*1000;
 type Job={id:string;title:string;link:string;score:number;salary:string|null;date:string;timestamp:number;rank:number;status:string;category:string;categories:string[];city?:string;company?:string;experience?:string;source:string};
