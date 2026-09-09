@@ -16,6 +16,9 @@ const JUNIOR=/\b(?:junior|jr\.?|trainee|beca|practicas|primer empleo|n1|nivel 1|
 // El CV acredita español nativo e inglés intermedio. Si el propio título exige otro idioma
 // o inglés alto/avanzado, la candidatura no debe aparecer como recomendada.
 const LANGUAGE_REJECT=/\b(?:aleman|german|frances|french|italiano|italian|portugues|portuguese)\b|ingles\s+(?:alto|avanzado|fluido|c1|c2)|english\s+(?:advanced|fluent|c1|c2)/i;
+// No recomendar vacantes cuyo propio título exige una condición/certificación personal
+// que no consta en el perfil. Esto evita falsos positivos aunque el puesto técnico encaje.
+const ELIGIBILITY_REJECT=/certificado(?:\s+de)?\s+discapacidad|discapacidad\s+(?:igual|superior|>=?|mayor)\s*(?:al)?\s*33\s*%|diversidad funcional/i;
 
 export function matchProfessionalProfile(title:string, description=''):ProfileMatch {
   const titleText=norm(title);
@@ -23,6 +26,7 @@ export function matchProfessionalProfile(title:string, description=''):ProfileMa
   const reasons:string[]=[];
   if(!t || HARD_REJECT.test(t)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['Fuera del nivel o ámbito profesional objetivo']};
   if(LANGUAGE_REJECT.test(titleText)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['El título exige un idioma o nivel lingüístico no acreditado en el CV']};
+  if(ELIGIBILITY_REJECT.test(titleText)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['La vacante exige una condición o acreditación personal que no consta en el perfil']};
   if(/\b(?:ingeniero|engineer)\b/.test(t) && !JUNIOR.test(t)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['Rol de ingeniería no junior fuera del nivel objetivo']};
   if(/administrador(?:\/a)?\b/.test(t) && !JUNIOR.test(t)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['Administración especializada sin nivel junior explícito']};
 
