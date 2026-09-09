@@ -36,13 +36,15 @@ export function matchProfessionalProfile(title:string, description=''):ProfileMa
   // Formación cursada: prevención/detección/respuesta, ataques y malware, criptografía,
   // vulnerabilidades y CVSS, gestión de riesgos, hacking ético, seguridad web/sistemas/redes,
   // IoT, análisis forense, evidencias, logs, tráfico, IDS, Wireshark/tcpdump/Snort y respuesta a incidentes.
+  // Como no hay experiencia profesional específica demostrada en ciberseguridad, el feed
+  // exige una señal explícita de nivel de entrada (junior/N1/L1/trainee/prácticas) o un rol SOC operativo.
   const cyberDomain=/ciberseguridad|cybersecurity|\bsoc\b|security analyst|analista de seguridad|seguridad informatica|siem|respuesta a incidentes|incident response|vulnerabil|pentest|hacking etico|forense digital|digital forensics|analisis forense|threat analyst|blue team/.test(t);
   const cyberRole=/analista|tecnico|operador|trainee|beca|practicas/.test(t);
   const advancedCyber=/cloud security engineer|security engineer|ingeniero(?:\/a)? de seguridad|administrador(?:\/a)? (?:de )?siem|pentester(?!.*(?:junior|jr|trainee))|forensic expert|experto forense|consultor(?:\/a)?/.test(t);
-  if(cyberDomain && cyberRole && !advancedCyber){
-    const explicitEntry=JUNIOR.test(t)||/operador(?:\/a)? soc|analista soc/.test(t);
-    reasons.push('Formación específica en ciberseguridad; encaje por estudios, no por experiencia profesional');
-    return {eligible:true,score:explicitEntry?88:81,area:'Ciberseguridad',basis:'estudios',reasons};
+  const explicitCyberEntry=JUNIOR.test(t)||/operador(?:\/a)? (?:de )?(?:seguridad.*)?soc\b|analista soc\b/.test(t);
+  if(cyberDomain && cyberRole && !advancedCyber && explicitCyberEntry){
+    reasons.push('Formación específica en ciberseguridad y nivel de entrada explícito; encaje por estudios, no por experiencia profesional');
+    return {eligible:true,score:88,area:'Ciberseguridad',basis:'estudios',reasons};
   }
 
   return {eligible:false,score:35,area:'Fuera de perfil',basis:'ninguno',reasons:['No hay evidencia suficiente de encaje con experiencia o estudios']};
