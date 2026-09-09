@@ -19,7 +19,7 @@ const JUNIOR=/\b(?:junior|jr\.?|trainee|beca|practicas|primer empleo|n1|nivel 1|
 const TITLE_EXPERIENCE_REJECT=/(?:\b(?:4|5|6|7|8|9|10)\s*\+?\s*(?:anos|años)\b)|(?:\b\d{1,2}\s*(?:-|–|a)\s*(?:4|5|6|7|8|9|10)\s*(?:anos|años)\b)|(?:\b(?:minimo|al menos|mas de|experiencia(?: minima)?(?: de)?)\s*(?:4|5|6|7|8|9|10)\s*(?:anos|años)\b)/i;
 // Tecnologías/plataformas de desarrollo muy específicas que no constan en el CV ni en DAW.
 // No se descartan si la propia vacante declara nivel junior/entrada, donde sí puede ser razonable aprenderlas.
-const SPECIALIZED_DEV=/\bcells\b|sencha(?:\s+ext\s*js)?|oracle\s+pl\/sql|\bvb\s*\.net\b|\basp\s*\.net\b|(?:^|[\s(])\.net(?:\s+core)?\b/i;
+const SPECIALIZED_DEV=/\bcells\b|sencha(?:\s+ext\s*js)?|oracle\s+pl\/sql|\bvb\s*\.net\b|\basp\s*\.net\b|(?:^|[\s(])\.net(?:\s+core)?\b|\bapx\b|\baso\b/i;
 // El CV acredita español nativo e inglés intermedio. Si el propio título exige otro idioma
 // o inglés alto/avanzado, la candidatura no debe aparecer como recomendada.
 const LANGUAGE_REJECT=/\b(?:aleman|german|frances|french|italiano|italian|portugues|portuguese)\b|ingles\s+(?:alto|avanzado|fluido|c1|c2)|english\s+(?:advanced|fluent|c1|c2)/i;
