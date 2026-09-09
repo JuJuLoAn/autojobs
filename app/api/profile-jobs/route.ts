@@ -33,8 +33,10 @@ function modalityFromTitle(title: string): Job['modality'] | undefined {
   const t = norm(title);
   // Solo se devuelve modalidad cuando está declarada explícitamente en el título.
   // No inferirla por ciudad, empresa ni otras señales ambiguas.
-  if (/100\s*%\s*(?:remoto|teletrabajo)|\b(?:remoto|remote)\b|\bteletrabajo\b/.test(t)) return 'Remoto';
+  // El teletrabajo parcial (p. ej. "3 días a la semana") es híbrido, no remoto total.
   if (/\bhibri(?:do|da)\b|\bhybrid\b/.test(t)) return 'Híbrido';
+  if (/\b(?:teletrabajo|remoto|remote)\b[^)]{0,35}\b(?:1|2|3|4)\s*dias?\b|\b(?:1|2|3|4)\s*dias?\b[^)]{0,35}\b(?:teletrabajo|remoto|remote)\b/.test(t)) return 'Híbrido';
+  if (/100\s*%\s*(?:remoto|teletrabajo|remote)|\b(?:remoto|remote)\b|\bteletrabajo\b/.test(t)) return 'Remoto';
   if (/\bpresencial\b|\bon[- ]?site\b/.test(t)) return 'Presencial';
   return undefined;
 }
@@ -94,7 +96,7 @@ export async function GET(request: NextRequest) {
         profile:
           'Motor de matching basado en CV: experiencia real + DAW + SMR + formación de IA aplicada y ciberseguridad; materias estudiadas solo habilitan puestos junior/de entrada.',
         modality:
-          'Modalidad solo cuando InfoJobs la declara explícitamente en el título; no se infiere si no está indicada.',
+          'Modalidad solo cuando InfoJobs la declara explícitamente en el título; teletrabajo parcial se clasifica como híbrido.',
       },
     },
     { status: rawResponse.status },
