@@ -13,11 +13,16 @@ const norm=(s:string)=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u
 // a puestos junior/de entrada sin convertir materias estudiadas en experiencia profesional.
 const HARD_REJECT=/\b(?:senior|sr\.?|lead|manager|director|head|architect|arquitecto|responsable|jefe|coordinador|pmo|principal|especialista)\b|analista\s+programador|scada|\bplc\b|automatizacion industrial|labview|data scientist|data engineer|machine learning|mlops|ai engineer|ia engineer|genai|\bllm\b|\brpa\b|business intelligence|power bi|devops|devsecops|databricks|\bspark\b|\bscala\b|salesforce|sap abap|\bappian\b|\bbpm\b|\bcmdb\b/i;
 const JUNIOR=/\b(?:junior|jr\.?|trainee|beca|practicas|primer empleo|n1|nivel 1|l1)\b/i;
+// El CV acredita español nativo e inglés intermedio. Si el propio título exige otro idioma
+// o inglés alto/avanzado, la candidatura no debe aparecer como recomendada.
+const LANGUAGE_REJECT=/\b(?:aleman|german|frances|french|italiano|italian|portugues|portuguese)\b|ingles\s+(?:alto|avanzado|fluido|c1|c2)|english\s+(?:advanced|fluent|c1|c2)/i;
 
 export function matchProfessionalProfile(title:string, description=''):ProfileMatch {
+  const titleText=norm(title);
   const t=norm(`${title} ${description}`);
   const reasons:string[]=[];
   if(!t || HARD_REJECT.test(t)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['Fuera del nivel o ámbito profesional objetivo']};
+  if(LANGUAGE_REJECT.test(titleText)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['El título exige un idioma o nivel lingüístico no acreditado en el CV']};
   if(/\b(?:ingeniero|engineer)\b/.test(t) && !JUNIOR.test(t)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['Rol de ingeniería no junior fuera del nivel objetivo']};
   if(/administrador(?:\/a)?\b/.test(t) && !JUNIOR.test(t)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['Administración especializada sin nivel junior explícito']};
 
