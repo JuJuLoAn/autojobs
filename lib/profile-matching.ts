@@ -15,7 +15,7 @@ const HARD_REJECT=/\b(?:senior|sr\.?|lead|manager|director|head|architect|arquit
 const JUNIOR=/\b(?:junior|jr\.?|trainee|beca|practicas|primer empleo|n1|nivel 1|l1)\b/i;
 // Tecnologías/plataformas de desarrollo muy específicas que no constan en el CV ni en DAW.
 // No se descartan si la propia vacante declara nivel junior/entrada, donde sí puede ser razonable aprenderlas.
-const SPECIALIZED_DEV=/\bcells\b|sencha(?:\s+ext\s*js)?|oracle\s+pl\/sql/i;
+const SPECIALIZED_DEV=/\bcells\b|sencha(?:\s+ext\s*js)?|oracle\s+pl\/sql|\bvb\s*\.net\b|\basp\s*\.net\b|\b\.net(?:\s+core)?\b/i;
 // El CV acredita español nativo e inglés intermedio. Si el propio título exige otro idioma
 // o inglés alto/avanzado, la candidatura no debe aparecer como recomendada.
 const LANGUAGE_REJECT=/\b(?:aleman|german|frances|french|italiano|italian|portugues|portuguese)\b|ingles\s+(?:alto|avanzado|fluido|c1|c2)|english\s+(?:advanced|fluent|c1|c2)/i;
