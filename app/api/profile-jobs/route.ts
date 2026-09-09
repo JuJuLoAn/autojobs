@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GET as getRawJobs } from '../jobs/route';
 import { matchProfessionalProfile } from '../../../lib/profile-matching';
-import { enrichInfoJobsJobs } from '../../../lib/infojobs-metadata';
 
 type Job = {
   id: string;
@@ -51,7 +50,7 @@ export async function GET(request: NextRequest) {
   const data = await rawResponse.json();
   const jobs: Job[] = Array.isArray(data.jobs) ? data.jobs : [];
 
-  const profileFiltered = jobs
+  const filtered = jobs
     .map((job) => {
       const match = matchProfessionalProfile(job.title);
       if (!match.eligible || match.score < 70) return null;
@@ -66,10 +65,6 @@ export async function GET(request: NextRequest) {
       } as Job;
     })
     .filter((job): job is Job => Boolean(job));
-
-  // Enriquecimiento conservador: como máximo las 10 primeras ofertas y solo con
-  // JobPosting JSON-LD publicado por InfoJobs. Si no existe o falla, el feed queda intacto.
-  const filtered = await enrichInfoJobsJobs(profileFiltered);
 
   const counts: Record<string, number> = { Todas: filtered.length };
   for (const job of filtered) {
@@ -101,9 +96,7 @@ export async function GET(request: NextRequest) {
         profile:
           'Motor de matching basado en CV: experiencia real + DAW + SMR + formación de IA aplicada y ciberseguridad; materias estudiadas solo habilitan puestos junior/de entrada.',
         modality:
-          'Modalidad solo cuando InfoJobs la declara explícitamente en el título o en JobPosting JSON-LD; teletrabajo parcial se clasifica como híbrido.',
-        metadata:
-          'Se intenta enriquecer de forma acotada las primeras ofertas con JobPosting JSON-LD de InfoJobs; nunca se inventan valores si faltan.',
+          'Modalidad solo cuando InfoJobs la declara explícitamente en el título; teletrabajo parcial se clasifica como híbrido.',
       },
     },
     { status: rawResponse.status },
