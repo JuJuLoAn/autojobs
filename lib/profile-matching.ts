@@ -30,6 +30,9 @@ const LANGUAGE_REJECT=/\b(?:aleman|german|frances|french|italiano|italian|portug
 // No recomendar vacantes cuyo propio título exige una condición/certificación personal
 // que no consta en el perfil. Esto evita falsos positivos aunque el puesto técnico encaje.
 const ELIGIBILITY_REJECT=/certificado(?:\s+de)?\s+discapacidad|discapacidad\s+(?:igual|superior|>=?|mayor)\s*(?:al)?\s*33\s*%|diversidad funcional/i;
+// Consultoría suele implicar análisis/implantación para cliente y no forma parte del núcleo
+// objetivo del perfil. Solo se permite si la propia vacante declara nivel junior/trainee.
+const CONSULTING_ROLE=/\bconsultor(?:a)?\b|\bconsultant\b/i;
 
 export function matchProfessionalProfile(title:string, description=''):ProfileMatch {
   const titleText=norm(title);
@@ -40,6 +43,7 @@ export function matchProfessionalProfile(title:string, description=''):ProfileMa
   if(TITLE_EXPERIENCE_REJECT.test(titleText)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['La vacante exige explícitamente más de 3 años de experiencia']};
   if(LANGUAGE_REJECT.test(titleText)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['El título exige un idioma o nivel lingüístico no acreditado en el CV']};
   if(ELIGIBILITY_REJECT.test(titleText)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['La vacante exige una condición o acreditación personal que no consta en el perfil']};
+  if(CONSULTING_ROLE.test(titleText) && !JUNIOR.test(titleText)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['Consultoría no junior fuera del perfil profesional objetivo']};
   if(/\b(?:ingeniero|engineer)\b/.test(t) && !JUNIOR.test(t)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['Rol de ingeniería no junior fuera del nivel objetivo']};
   if(/administrador(?:\/a)?\b/.test(t) && !JUNIOR.test(t)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['Administración especializada sin nivel junior explícito']};
   // Kafka es una especialización de backend/distribuidos que no consta en el CV. Se permite
