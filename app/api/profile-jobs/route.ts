@@ -41,6 +41,18 @@ function modalityFromTitle(title: string): Job['modality'] | undefined {
   return undefined;
 }
 
+function canonicalInfoJobsLink(link: string): string {
+  try {
+    const url = new URL(link);
+    if (!/^(?:www\.)?infojobs\.net$/i.test(url.hostname)) return link;
+    // Los parámetros applicationOrigin/page/sortBy pertenecen a la búsqueda y no a la oferta.
+    // Mantener solo la URL canónica evita enlaces distintos para la misma vacante.
+    return `${url.protocol}//${url.host}${url.pathname}`;
+  } catch {
+    return link;
+  }
+}
+
 export async function GET(request: NextRequest) {
   const rawUrl = request.nextUrl.clone();
   rawUrl.pathname = '/api/jobs';
@@ -60,6 +72,7 @@ export async function GET(request: NextRequest) {
       if (!match.eligible || match.score < 70) return null;
       return {
         ...job,
+        link: canonicalInfoJobsLink(job.link),
         score: match.score,
         category: match.area,
         // El motor de perfil es la fuente canónica de categoría. No conservar categorías
@@ -121,6 +134,8 @@ export async function GET(request: NextRequest) {
           'Motor de matching basado en CV: experiencia real + DAW + SMR + formación de IA aplicada y ciberseguridad; materias estudiadas solo habilitan puestos junior/de entrada.',
         modality:
           'Modalidad solo cuando InfoJobs la declara explícitamente en el título; teletrabajo parcial se clasifica como híbrido.',
+        links:
+          'URLs canónicas de InfoJobs sin parámetros de búsqueda o tracking.',
       },
     },
     { status: rawResponse.status },
