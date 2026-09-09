@@ -62,7 +62,10 @@ export async function GET(request: NextRequest) {
         ...job,
         score: match.score,
         category: match.area,
-        categories: Array.from(new Set([...(job.categories || []), match.area])),
+        // El motor de perfil es la fuente canónica de categoría. No conservar categorías
+        // heredadas del scraping, porque una clasificación previa errónea puede contaminar
+        // filtros/contadores aunque `category` ya haya sido corregida.
+        categories: [match.area],
         modality: modalityFromTitle(job.title),
         matchBasis: match.basis,
         matchReasons: match.reasons,
