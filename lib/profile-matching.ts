@@ -13,6 +13,9 @@ const norm=(s:string)=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u
 // a puestos junior/de entrada sin convertir materias estudiadas en experiencia profesional.
 const HARD_REJECT=/\b(?:senior|sr\.?|lead|manager|director|head|architect|arquitecto|responsable|jefe|coordinador|pmo|principal|especialista)\b|analista\s+programador|scada|\bplc\b|automatizacion industrial|labview|data scientist|data engineer|machine learning|mlops|ai engineer|ia engineer|genai|\bllm\b|\brpa\b|business intelligence|power bi|devops|devsecops|databricks|\bspark\b|\bscala\b|salesforce|sap abap|\bappian\b|\bcamunda\b|\bbpm\b|\bcmdb\b/i;
 const JUNIOR=/\b(?:junior|jr\.?|trainee|beca|practicas|primer empleo|n1|nivel 1|l1)\b/i;
+// Tecnologías/plataformas de desarrollo muy específicas que no constan en el CV ni en DAW.
+// No se descartan si la propia vacante declara nivel junior/entrada, donde sí puede ser razonable aprenderlas.
+const SPECIALIZED_DEV=/\bcells\b|sencha(?:\s+ext\s*js)?|oracle\s+pl\/sql/i;
 // El CV acredita español nativo e inglés intermedio. Si el propio título exige otro idioma
 // o inglés alto/avanzado, la candidatura no debe aparecer como recomendada.
 const LANGUAGE_REJECT=/\b(?:aleman|german|frances|french|italiano|italian|portugues|portuguese)\b|ingles\s+(?:alto|avanzado|fluido|c1|c2)|english\s+(?:advanced|fluent|c1|c2)/i;
@@ -32,6 +35,7 @@ export function matchProfessionalProfile(title:string, description=''):ProfileMa
   // Kafka es una especialización de backend/distribuidos que no consta en el CV. Se permite
   // únicamente si la propia oferta declara nivel junior/entrada, donde puede ser aprendizaje.
   if(/\bkafka\b/.test(t) && !JUNIOR.test(t)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['Especialización Kafka sin nivel junior explícito ni experiencia acreditada']};
+  if(SPECIALIZED_DEV.test(t) && !JUNIOR.test(t)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['Stack de desarrollo especializado no acreditado y sin nivel junior explícito']};
 
   const support=/soporte (?:it|ti|tecnico|informatico)|tecnico(?:\/a)? (?:de )?soporte|help.?desk|service desk|\bcau\b|microinformat|tecnico(?:\/a)? informatico|it support|desktop support|puesto de usuario/.test(t);
   if(support){reasons.push('Experiencia profesional y SMR en soporte IT/microinformática');return {eligible:true,score:JUNIOR.test(t)?98:94,area:'Soporte IT',basis:'experiencia+estudios',reasons};}
