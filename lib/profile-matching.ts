@@ -11,7 +11,7 @@ const norm=(s:string)=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u
 // Perfil derivado del CV y de los módulos de ciberseguridad aportados por el usuario.
 // Regla: experiencia real puede justificar puestos equivalentes; formación permite ampliar
 // a puestos junior/de entrada sin convertir materias estudiadas en experiencia profesional.
-const HARD_REJECT=/\b(?:senior|sr\.?|lead|manager|director|head|architect|arquitecto|responsable|jefe|coordinador|pmo|principal|especialista)\b|analista\s+programador|scada|\bplc\b|automatizacion industrial|labview|data scientist|data engineer|machine learning|mlops|ai engineer|ia engineer|genai|\bllm\b|\brpa\b|business intelligence|power bi|devops|devsecops|databricks|\bspark\b|\bscala\b|salesforce|sap abap|\bappian\b|\bbpm\b|\bcmdb\b/i;
+const HARD_REJECT=/\b(?:senior|sr\.?|lead|manager|director|head|architect|arquitecto|responsable|jefe|coordinador|pmo|principal|especialista)\b|analista\s+programador|scada|\bplc\b|automatizacion industrial|labview|data scientist|data engineer|machine learning|mlops|ai engineer|ia engineer|genai|\bllm\b|\brpa\b|business intelligence|power bi|devops|devsecops|databricks|\bspark\b|\bscala\b|salesforce|sap abap|\bappian\b|\bcamunda\b|\bbpm\b|\bcmdb\b/i;
 const JUNIOR=/\b(?:junior|jr\.?|trainee|beca|practicas|primer empleo|n1|nivel 1|l1)\b/i;
 // El CV acredita español nativo e inglés intermedio. Si el propio título exige otro idioma
 // o inglés alto/avanzado, la candidatura no debe aparecer como recomendada.
