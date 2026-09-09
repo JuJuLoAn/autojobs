@@ -17,6 +17,9 @@ type Job = {
   city?: string;
   company?: string;
   experience?: string;
+  modality?: string;
+  matchBasis?: 'experiencia' | 'estudios' | 'experiencia+estudios' | 'ninguno';
+  matchReasons?: string[];
 };
 
 type TrackStatus =
@@ -45,7 +48,7 @@ type View = 'feed' | 'applied' | 'pipeline';
 const norm = (s: string) =>
   String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-const CACHE = 'autojobs-feed-v13';
+const CACHE = 'autojobs-feed-v14';
 const SAVED_KEY = 'autojobs-cards-v11';
 const TTL = 10 * 60 * 1000;
 const PIPELINE: TrackStatus[] = [
@@ -69,29 +72,11 @@ const tips = [
   'Las ofertas senior, comerciales o demasiado especializadas se descartan.',
 ];
 
-function matchesProfileJob(job: Job) {
-  const t = norm(job.title);
-  if (!t) return false;
-
-  if (
-    /\b(?:senior|sr\.?|lead|manager|director|head|architect|arquitecto|responsable|jefe|coordinador)\b/.test(t)
-  ) return false;
-
-  if (
-    /\b(?:comercial|ventas|preventa|presales|teleoperador|call center|marketing|rrhh|recursos humanos|curso|formacion|docente|profesor)\b/.test(t)
-  ) return false;
-
-  if (
-    /data scientist|data engineer|machine learning|ml engineer|mlops|ai engineer|ia engineer|genai|\bllm\b|\brpa\b|business intelligence|power bi/.test(t)
-  ) return false;
-
-  const support = /soporte (?:it|ti|tecnico|informatico)|tecnico(?:\/a)? (?:de )?soporte|help.?desk|service desk|\bcau\b|microinformat|tecnico(?:\/a)? informatico|it support|desktop support|puesto de usuario/.test(t);
-  const development = /desarrollador(?:\/a)? web|programador(?:\/a)?|frontend|front end|backend|back end|full.?stack|web developer|software developer|wordpress|javascript|typescript|react|php|node(?:\.js)?|java developer|python developer|\.net developer/.test(t);
-  const systems = /tecnico(?:\/a)? (?:de )?sistemas|operador(?:\/a)? (?:de )?sistemas|sistemas informaticos|data center|datacenter|\bcpd\b|monitorizacion|active directory|microsoft 365|\bm365\b|office 365/.test(t);
-  const cyber = /ciberseguridad|cybersecurity|analista soc|\bsoc\b|security analyst|\bsiem\b|seguridad informatica|pentest/.test(t);
-  const networks = /tecnico(?:\/a)? (?:de )?redes|network technician|\bnoc\b|\bcisco\b|redes informaticas|comunicaciones it/.test(t);
-
-  return support || development || systems || cyber || networks;
+function validFeedJob(job: Job) {
+  return (
+    job.category !== 'General' &&
+    /^https:\/\/(?:www\.)?infojobs\.net\//i.test(job.link)
+  );
 }
 
 function legacyDateToTimestamp(date?: string) {
@@ -148,7 +133,7 @@ export default function Home() {
 
       const cached = JSON.parse(localStorage.getItem(CACHE) || 'null');
       if (cached?.jobs && Date.now() - cached.at < TTL) {
-        setJobs((cached.jobs as Job[]).filter(matchesProfileJob));
+        setJobs((cached.jobs as Job[]).filter(validFeedJob));
         setProviderStatus(cached.providerStatus || 'ok');
         setBusy(false);
         load(false, false);
@@ -183,12 +168,7 @@ export default function Home() {
       });
       const data = await response.json();
       const sorted = (data.jobs || [])
-        .filter(
-          (job: Job) =>
-            job.category !== 'General' &&
-            /^https:\/\/(?:www\.)?infojobs\.net\//i.test(job.link) &&
-            matchesProfileJob(job),
-        )
+        .filter((job: Job) => validFeedJob(job))
         .sort((a: Job, b: Job) => {
           const at = a.timestamp || 0;
           const bt = b.timestamp || 0;
@@ -299,7 +279,6 @@ export default function Home() {
   const feed = useMemo(
     () =>
       jobs.filter((job) => {
-        if (!matchesProfileJob(job)) return false;
         const status = tracked(job)?.status as TrackStatus | undefined;
         if (!status) return true;
         return status !== 'Descartado' && status !== 'Rechazado' && !APPLIED_STATUSES.has(status);
@@ -322,7 +301,7 @@ export default function Home() {
     <main>
       <header className="appHeader">
         <div className="brand">
-          AUTOJOBS <small style={{ opacity: 0.45 }}>v13</small>
+          AUTOJOBS <small style={{ opacity: 0.45 }}>v14</small>
         </div>
         <div className="topline">
           <h1>
@@ -392,10 +371,12 @@ export default function Home() {
                     </div>
                     <h3>{job.title}</h3>
                     {job.company && <div className="small">{job.company}</div>}
+                    {job.matchReasons?.[0] && <div className="small">{job.matchReasons[0]}</div>}
                     <div className="jobMeta">
                       <span className={job.salary ? 'salary salaryKnown' : 'salary'}>
                         💰 {job.salary || 'No indicado'}
                       </span>
+                      {job.modality && <span className="small">{job.modality}</span>}
                       {job.experience && <span className="small">Experiencia: {job.experience}</span>}
                       {savedJob && <span className="status abierta">{savedJob.status}</span>}
                     </div>
