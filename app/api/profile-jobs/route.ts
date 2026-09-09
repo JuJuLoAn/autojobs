@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
     match: matchProfessionalProfile(job.title),
   }));
 
-  const filtered = evaluated
+  const filteredUnranked = evaluated
     .map(({ job, match }) => {
       if (!match.eligible || match.score < 70) return null;
       return {
@@ -85,6 +85,25 @@ export async function GET(request: NextRequest) {
       } as Job;
     })
     .filter((job): job is Job => Boolean(job));
+
+  // El `rank` original procede de búsquedas distintas por keyword y no representa un orden
+  // global fiable. Cuando no existe fecha verificada, priorizamos el encaje con el perfil y
+  // usamos el orden original de InfoJobs solo como desempate. Si hay fecha verificada, manda
+  // la recencia. Después reasignamos un rank canónico para que cualquier cliente respete el
+  // mismo orden sin tener que duplicar esta lógica.
+  const filtered = [...filteredUnranked]
+    .sort((a, b) => {
+      const at = a.timestamp || 0;
+      const bt = b.timestamp || 0;
+      if (Boolean(at) !== Boolean(bt)) return bt ? 1 : -1;
+      if (at !== bt) return bt - at;
+      if (a.score !== b.score) return b.score - a.score;
+      const ar = a.rank ?? 999999;
+      const br = b.rank ?? 999999;
+      if (ar !== br) return ar - br;
+      return a.title.localeCompare(b.title, 'es');
+    })
+    .map((job, index) => ({ ...job, rank: index }));
 
   const counts: Record<string, number> = { Todas: filtered.length };
   for (const job of filtered) {
@@ -128,8 +147,8 @@ export async function GET(request: NextRequest) {
       filters: {
         ...(data.filters || {}),
         sort: hasVerifiedDates
-          ? 'Fechas verificadas primero; después orden de InfoJobs'
-          : 'Orden de InfoJobs; fecha de publicación no verificable',
+          ? 'Fechas verificadas primero; después afinidad con el perfil y orden de InfoJobs'
+          : 'Afinidad con el perfil primero; orden de InfoJobs como desempate porque la fecha no es verificable',
         profile:
           'Motor de matching basado en CV: experiencia real + DAW + SMR + formación de IA aplicada y ciberseguridad; materias estudiadas solo habilitan puestos junior/de entrada.',
         modality:
