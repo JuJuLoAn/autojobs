@@ -17,10 +17,27 @@ type Job = {
   city?: string;
   company?: string;
   experience?: string;
+  modality?: 'Remoto' | 'Híbrido' | 'Presencial';
   source?: string;
   matchBasis?: string;
   matchReasons?: string[];
 };
+
+const norm = (value: string) =>
+  String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+function modalityFromTitle(title: string): Job['modality'] | undefined {
+  const t = norm(title);
+  // Solo se devuelve modalidad cuando está declarada explícitamente en el título.
+  // No inferirla por ciudad, empresa ni otras señales ambiguas.
+  if (/100\s*%\s*(?:remoto|teletrabajo)|\b(?:remoto|remote)\b|\bteletrabajo\b/.test(t)) return 'Remoto';
+  if (/\bhibri(?:do|da)\b|\bhybrid\b/.test(t)) return 'Híbrido';
+  if (/\bpresencial\b|\bon[- ]?site\b/.test(t)) return 'Presencial';
+  return undefined;
+}
 
 export async function GET(request: NextRequest) {
   const rawUrl = request.nextUrl.clone();
@@ -40,6 +57,7 @@ export async function GET(request: NextRequest) {
         score: match.score,
         category: match.area,
         categories: Array.from(new Set([...(job.categories || []), match.area])),
+        modality: modalityFromTitle(job.title),
         matchBasis: match.basis,
         matchReasons: match.reasons,
       } as Job;
@@ -58,6 +76,7 @@ export async function GET(request: NextRequest) {
     withSalary: filtered.filter((job) => Boolean(job.salary)).length,
     withCompany: filtered.filter((job) => Boolean(job.company?.trim())).length,
     withExperience: filtered.filter((job) => Boolean(job.experience?.trim())).length,
+    withModality: filtered.filter((job) => Boolean(job.modality)).length,
   };
   const hasVerifiedDates = metadata.withVerifiedDate > 0;
 
@@ -74,6 +93,8 @@ export async function GET(request: NextRequest) {
           : 'Orden de InfoJobs; fecha de publicación no verificable',
         profile:
           'Motor de matching basado en CV: experiencia real + DAW + SMR + formación de IA aplicada y ciberseguridad; materias estudiadas solo habilitan puestos junior/de entrada.',
+        modality:
+          'Modalidad solo cuando InfoJobs la declara explícitamente en el título; no se infiere si no está indicada.',
       },
     },
     { status: rawResponse.status },
