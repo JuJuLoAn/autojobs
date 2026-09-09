@@ -8,9 +8,10 @@ export type ProfileMatch = {
 
 const norm=(s:string)=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 
-// Perfil objetivo derivado del CV y de la formación aportada por el usuario.
-// Regla clave: estudiar una materia permite optar a puestos junior/trainee; no se convierte en experiencia profesional.
-const HARD_REJECT=/\b(?:senior|sr\.?|lead|manager|director|head|architect|arquitecto|responsable|jefe|coordinador|pmo)\b|scada|\bplc\b|automatizacion industrial|labview|data scientist|data engineer|machine learning|mlops|ai engineer|ia engineer|genai|\bllm\b|\brpa\b|business intelligence|power bi/i;
+// Perfil derivado del CV y de los módulos de ciberseguridad aportados por el usuario.
+// Regla: experiencia real puede justificar puestos equivalentes; formación permite ampliar
+// a puestos junior/de entrada sin convertir materias estudiadas en experiencia profesional.
+const HARD_REJECT=/\b(?:senior|sr\.?|lead|manager|director|head|architect|arquitecto|responsable|jefe|coordinador|pmo|principal)\b|scada|\bplc\b|automatizacion industrial|labview|data scientist|data engineer|machine learning|mlops|ai engineer|ia engineer|genai|\bllm\b|\brpa\b|business intelligence|power bi|devops|devsecops/i;
 const JUNIOR=/\b(?:junior|jr\.?|trainee|beca|practicas|primer empleo|n1|nivel 1|l1)\b/i;
 
 export function matchProfessionalProfile(title:string, description=''):ProfileMatch {
@@ -19,27 +20,27 @@ export function matchProfessionalProfile(title:string, description=''):ProfileMa
   if(!t || HARD_REJECT.test(t)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['Fuera del nivel o ámbito profesional objetivo']};
 
   const support=/soporte (?:it|ti|tecnico|informatico)|tecnico(?:\/a)? (?:de )?soporte|help.?desk|service desk|\bcau\b|microinformat|tecnico(?:\/a)? informatico|it support|desktop support|puesto de usuario/.test(t);
-  if(support){reasons.push('Experiencia y formación en soporte IT/microinformática');return {eligible:true,score:JUNIOR.test(t)?98:94,area:'Soporte IT',basis:'experiencia+estudios',reasons};}
+  if(support){reasons.push('Experiencia profesional y SMR en soporte IT/microinformática');return {eligible:true,score:JUNIOR.test(t)?98:94,area:'Soporte IT',basis:'experiencia+estudios',reasons};}
 
-  const dev=/desarrollador(?:\/a)? web|programador(?:\/a)? web|frontend|front end|backend|back end|full.?stack|web developer|wordpress|javascript|typescript|react|php|node(?:\.js)?|java developer|python developer|\.net developer/.test(t);
-  if(dev){reasons.push('DAW y experiencia real en desarrollo/mantenimiento web');return {eligible:true,score:JUNIOR.test(t)?94:88,area:'Desarrollo Web',basis:'experiencia+estudios',reasons};}
+  const dev=/desarrollador(?:\/a)? web|programador(?:\/a)? web|frontend|front end|backend|back end|full.?stack|web developer|wordpress|javascript|typescript|react|php|node(?:\.js)?|java developer|python developer|\.net developer|programador(?:\/a)? (?:java|php|javascript|typescript|react|angular|\.net|python|full.?stack)/.test(t);
+  if(dev){reasons.push('DAW y experiencia real en desarrollo y mantenimiento web');return {eligible:true,score:JUNIOR.test(t)?94:88,area:'Desarrollo Web',basis:'experiencia+estudios',reasons};}
 
-  const systems=/tecnico(?:\/a)? (?:de )?sistemas|operador(?:\/a)? (?:de )?sistemas|operador(?:\/a)? (?:de )?(?:cpd|data center)|tecnico(?:\/a)? (?:de )?(?:cpd|data center)|data center technician|monitorizacion/.test(t);
-  if(systems){reasons.push('SMR y experiencia de operación/monitorización de infraestructura y CPD');return {eligible:true,score:JUNIOR.test(t)?96:92,area:'Infraestructura / Sistemas',basis:'experiencia+estudios',reasons};}
+  const systems=/tecnico(?:\/a)? (?:de )?sistemas|operador(?:\/a)? (?:de )?sistemas|operador(?:\/a)? (?:de )?(?:cpd|data center|datacenter)|tecnico(?:\/a)? (?:de )?(?:cpd|data center|datacenter)|data center technician|monitorizacion/.test(t);
+  if(systems){reasons.push('SMR y experiencia en infraestructuras, equipos, redes y operación/monitorización técnica');return {eligible:true,score:JUNIOR.test(t)?96:92,area:'Infraestructura / Sistemas',basis:'experiencia+estudios',reasons};}
 
   const networks=/tecnico(?:\/a)? (?:de )?redes|network technician|operador(?:\/a)? noc|tecnico(?:\/a)? noc|redes informaticas/.test(t);
-  if(networks){reasons.push('SMR, redes y experiencia técnica relacionada');return {eligible:true,score:JUNIOR.test(t)?91:84,area:'Redes',basis:'experiencia+estudios',reasons};}
+  if(networks){reasons.push('SMR, redes y experiencia técnica en infraestructuras');return {eligible:true,score:JUNIOR.test(t)?91:84,area:'Redes',basis:'experiencia+estudios',reasons};}
 
-  // Formación de ciberseguridad aportada: ataques/contraseñas, ingeniería social y malware,
-  // vulnerabilidades/riesgos, seguridad de redes/web/sistemas, hacking ético, análisis forense,
-  // evidencias/logs/tráfico, IDS, respuesta a incidentes y materias relacionadas.
-  // Sin experiencia profesional específica demostrada: se exige forma de puesto de entrada.
-  const cyberDomain=/ciberseguridad|cybersecurity|\bsoc\b|security analyst|analista de seguridad|seguridad informatica|siem|respuesta a incidentes|incident response|vulnerabil|pentest|hacking etico|forense digital|digital forensics|analisis forense/.test(t);
+  // Formación cursada: prevención/detección/respuesta, ataques y malware, criptografía,
+  // vulnerabilidades y CVSS, gestión de riesgos, hacking ético, seguridad web/sistemas/redes,
+  // IoT, análisis forense, evidencias, logs, tráfico, IDS, Wireshark/tcpdump/Snort y respuesta a incidentes.
+  const cyberDomain=/ciberseguridad|cybersecurity|\bsoc\b|security analyst|analista de seguridad|seguridad informatica|siem|respuesta a incidentes|incident response|vulnerabil|pentest|hacking etico|forense digital|digital forensics|analisis forense|threat analyst|blue team/.test(t);
   const cyberRole=/analista|tecnico|operador|trainee|beca|practicas/.test(t);
-  const advancedCyber=/devsecops|cloud security engineer|security engineer|ingeniero(?:\/a)? de seguridad|administrador(?:\/a)? (?:de )?siem|pentester(?!.*junior)|forensic expert|experto forense/.test(t);
-  if(cyberDomain && cyberRole && !advancedCyber && (JUNIOR.test(t)||/operador(?:\/a)? soc|analista soc/.test(t))){
-    reasons.push('Formación específica en ciberseguridad; candidatura adecuada solo a nivel junior/entrada');
-    return {eligible:true,score:86,area:'Ciberseguridad',basis:'estudios',reasons};
+  const advancedCyber=/cloud security engineer|security engineer|ingeniero(?:\/a)? de seguridad|administrador(?:\/a)? (?:de )?siem|pentester(?!.*(?:junior|jr|trainee))|forensic expert|experto forense|consultor(?:\/a)?|especialista/.test(t);
+  if(cyberDomain && cyberRole && !advancedCyber){
+    const explicitEntry=JUNIOR.test(t)||/operador(?:\/a)? soc|analista soc/.test(t);
+    reasons.push('Formación específica en ciberseguridad; encaje por estudios, no por experiencia profesional');
+    return {eligible:true,score:explicitEntry?88:81,area:'Ciberseguridad',basis:'estudios',reasons};
   }
 
   return {eligible:false,score:35,area:'Fuera de perfil',basis:'ninguno',reasons:['No hay evidencia suficiente de encaje con experiencia o estudios']};
