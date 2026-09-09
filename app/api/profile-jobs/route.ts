@@ -50,9 +50,13 @@ export async function GET(request: NextRequest) {
   const data = await rawResponse.json();
   const jobs: Job[] = Array.isArray(data.jobs) ? data.jobs : [];
 
-  const filtered = jobs
-    .map((job) => {
-      const match = matchProfessionalProfile(job.title);
+  const evaluated = jobs.map((job) => ({
+    job,
+    match: matchProfessionalProfile(job.title),
+  }));
+
+  const filtered = evaluated
+    .map(({ job, match }) => {
       if (!match.eligible || match.score < 70) return null;
       return {
         ...job,
@@ -80,6 +84,22 @@ export async function GET(request: NextRequest) {
     withExperience: filtered.filter((job) => Boolean(job.experience?.trim())).length,
     withModality: filtered.filter((job) => Boolean(job.modality)).length,
   };
+
+  const rejectedByReason: Record<string, number> = {};
+  for (const { match } of evaluated) {
+    if (match.eligible && match.score >= 70) continue;
+    const reason = match.reasons[0] || 'Sin motivo de descarte';
+    rejectedByReason[reason] = (rejectedByReason[reason] || 0) + 1;
+  }
+
+  const profileDiagnostics = {
+    input: jobs.length,
+    accepted: filtered.length,
+    rejected: jobs.length - filtered.length,
+    acceptanceRate: jobs.length ? Number((filtered.length / jobs.length).toFixed(3)) : 0,
+    rejectedByReason,
+  };
+
   const hasVerifiedDates = metadata.withVerifiedDate > 0;
 
   return NextResponse.json(
@@ -88,6 +108,7 @@ export async function GET(request: NextRequest) {
       jobs: filtered,
       counts,
       metadataQuality: metadata,
+      profileDiagnostics,
       filters: {
         ...(data.filters || {}),
         sort: hasVerifiedDates
