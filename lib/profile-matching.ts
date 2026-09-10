@@ -19,6 +19,9 @@ const SPECIALIZED_DEV=/\bcells\b|sencha(?:\s+ext\s*js)?|oracle\s*\(?\s*pl\/sql\s
 const LANGUAGE_REJECT=/\b(?:aleman|german|frances|french|italiano|italian|portugues|portuguese)\b|ingles\s+(?:alto|avanzado|fluido|c1|c2)|english\s+(?:advanced|fluent|c1|c2)/i;
 const ELIGIBILITY_REJECT=/certificado(?:\s+de)?\s+discapacidad|discapacidad\s+(?:igual|superior|>=?|mayor)\s*(?:al)?\s*33\s*%|diversidad funcional/i;
 const CONSULTING_ROLE=/\bconsultor(?:a)?\b|\bconsultant\b/i;
+// El usuario no trabaja los domingos: una vacante que declara cobertura 24x7/24/7 en el
+// propio título implica disponibilidad de fin de semana incompatible con ese requisito.
+const SCHEDULE_REJECT=/\b24\s*[x\/]\s*7\b|\b24\s*horas?\s*(?:los\s*)?7\s*dias?\b/i;
 // Algunos empleadores usan "SOC" para Security Operations Center físico (alarmas, vigilancia,
 // videoverificación y coordinación con fuerzas de seguridad), no para un SOC de ciberseguridad.
 // Estos títulos deben quedar fuera aunque contengan la palabra SOC.
@@ -33,6 +36,7 @@ export function matchProfessionalProfile(title:string, description=''):ProfileMa
   if(TITLE_EXPERIENCE_REJECT.test(titleText)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['La vacante exige explícitamente más de 3 años de experiencia']};
   if(LANGUAGE_REJECT.test(titleText)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['El título exige un idioma o nivel lingüístico no acreditado en el CV']};
   if(ELIGIBILITY_REJECT.test(titleText)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['La vacante exige una condición o acreditación personal que no consta en el perfil']};
+  if(SCHEDULE_REJECT.test(titleText)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['La vacante declara cobertura 24x7 incompatible con la disponibilidad sin domingos']};
   if(CONSULTING_ROLE.test(titleText) && !JUNIOR.test(titleText)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['Consultoría no junior fuera del perfil profesional objetivo']};
   if(PHYSICAL_SECURITY_SOC.test(t)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['SOC de seguridad física/gestión de alarmas, no ciberseguridad']};
   if(/\b(?:ingeniero|engineer)\b/.test(t) && !JUNIOR.test(t)) return {eligible:false,score:0,area:'Fuera de perfil',basis:'ninguno',reasons:['Rol de ingeniería no junior fuera del nivel objetivo']};
