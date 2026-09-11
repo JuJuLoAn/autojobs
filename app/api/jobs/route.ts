@@ -10,7 +10,7 @@ const SEARCHES=[
  {category:'Ciberseguridad',keywords:['analista ciberseguridad n1','analista soc n1','tecnico ciberseguridad junior','operador soc']},
  {category:'Redes',keywords:['tecnico redes','network technician','operador noc','tecnico noc','redes informaticas']}
 ];
-const AREAS=SEARCHES.map(x=>x.category),TTL=10*60*1000,INFOJOBS_CONCURRENCY=8;
+const AREAS=SEARCHES.map(x=>x.category),TTL=10*60*1000,INFOJOBS_CONCURRENCY=4;
 type Job={id:string;title:string;link:string;score:number;salary:string|null;date:string;timestamp:number;rank:number;status:string;category:string;categories:string[];city?:string;company?:string;experience?:string;source:string};
 const g=globalThis as typeof globalThis&{__autojobsWebFeedV8?:{at:number;jobs:Job[]}};
 
