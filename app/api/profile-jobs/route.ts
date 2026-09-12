@@ -29,6 +29,14 @@ const norm = (value: string) =>
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
 
+function salaryBelowProfileMinimum(salary: string | null) {
+  if (!salary) return false;
+  const nums = [...salary.matchAll(/\d{2,3}(?:\.\d{3})?/g)]
+    .map((match) => Number(match[0].replace(/\./g, '')))
+    .filter((value) => value >= 12000);
+  return nums.length > 0 && Math.max(...nums) < 23000;
+}
+
 function modalityFromTitle(title: string): Job['modality'] | undefined {
   const t = norm(title);
   // Solo se devuelve modalidad cuando está declarada explícitamente en el título.
@@ -69,7 +77,7 @@ export async function GET(request: NextRequest) {
 
   const filteredUnranked = evaluated
     .map(({ job, match }) => {
-      if (!match.eligible || match.score < 70) return null;
+      if (!match.eligible || match.score < 70 || salaryBelowProfileMinimum(job.salary)) return null;
       return {
         ...job,
         link: canonicalInfoJobsLink(job.link),
@@ -143,9 +151,11 @@ export async function GET(request: NextRequest) {
   };
 
   const rejectedByReason: Record<string, number> = {};
-  for (const { match } of evaluated) {
-    if (match.eligible && match.score >= 70) continue;
-    const reason = match.reasons[0] || 'Sin motivo de descarte';
+  for (const { job, match } of evaluated) {
+    if (match.eligible && match.score >= 70 && !salaryBelowProfileMinimum(job.salary)) continue;
+    const reason = salaryBelowProfileMinimum(job.salary)
+      ? 'Salario verificado por debajo de 23.000 €'
+      : match.reasons[0] || 'Sin motivo de descarte';
     rejectedByReason[reason] = (rejectedByReason[reason] || 0) + 1;
   }
 
@@ -169,6 +179,7 @@ export async function GET(request: NextRequest) {
       profileDiagnostics,
       filters: {
         ...(data.filters || {}),
+        minimumSalary: '23.000 € cuando está indicado',
         sort: hasVerifiedDates
           ? 'Fechas verificadas primero; después afinidad con el perfil y orden de InfoJobs'
           : 'Afinidad con el perfil primero; orden de InfoJobs como desempate porque la fecha no es verificable',
