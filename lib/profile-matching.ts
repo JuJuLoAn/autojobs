@@ -16,7 +16,7 @@ const JUNIOR=/\b(?:junior|jr\.?|trainee|beca|practicas|primer empleo|n1|nivel 1|
 const QA_ROLE_REJECT=/\bqa\b|quality assurance|test(?:er|ing| automation)|automatizacion de pruebas|automatización de pruebas/i;
 const TITLE_EXPERIENCE_REJECT=/(?:\b(?:4|5|6|7|8|9|10)\s*\+?\s*(?:anos|años)\b)|(?:\b\d{1,2}\s*(?:-|–|a)\s*(?:4|5|6|7|8|9|10)\s*(?:anos|años)\b)|(?:\b(?:minimo|al menos|mas de|experiencia(?: minima)?(?: de)?)\s*(?:4|5|6|7|8|9|10)\s*(?:anos|años)\b)/i;
 const SPECIALIZED_DEV=/\bcells\b|sencha(?:\s+ext\s*js)?|oracle\s*\(?\s*pl\/sql\s*\)?|\bvb\s*\.net\b|\basp\s*\.net\b|(?:^|[\s(])\.net(?:\s+core)?\b|\bapx\b|\baso\b/i;
-const LANGUAGE_REJECT=/\b(?:aleman|german|frances|french|italiano|italian|portugues|portuguese)\b|ingles\s+(?:alto|avanzado|fluido|c1|c2)|english\s+(?:advanced|fluent|c1|c2)/i;
+const LANGUAGE_REJECT=/\b(?:aleman|german|frances|french|italiano|italian|portugues|portuguese)\b|ingles\s+(?:alto|avanzado|fluido|c1|c2)|(?:nivel\s+)?(?:alto|avanzado|fluido|c1|c2)\s+(?:de\s+)?ingles|english\s+(?:advanced|fluent|c1|c2)|(?:advanced|fluent|c1|c2)\s+english/i;
 const ELIGIBILITY_REJECT=/certificado(?:\s+de)?\s+discapacidad|discapacidad\s+(?:igual|superior|>=?|mayor)\s*(?:al)?\s*33\s*%|diversidad funcional/i;
 const CONSULTING_ROLE=/\bconsultor(?:a)?\b|\bconsultant\b/i;
 // El usuario no trabaja los domingos: una vacante que declara cobertura 24x7/24/7 en el
